@@ -47,7 +47,7 @@ Example:
 
     Query<User> sampleQuery = 
 	    new Query<User>()
-		    .Join<User, Like>(x=> x.Left.Id == x.Right.Id)
+		    .Join<User, Like>(x=> x.Left.Id == x.Right.UserId)
 		    // if required, you can use a named tuple
 		    // example: .Where<(User usr, Like like)>(x=> x.like.Date > DBO.Function<DateTime>("GETDATE()"))
 		    .Where<Like>(x=> x.Date == /* Get current date at (database) server side */ DBO.Function<DateTime>("GETDATE()"))
