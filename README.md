@@ -41,7 +41,7 @@ Example:
 	    static User() {
 		DSS.RegisterTableStructure<User>();
 	    }
-      } 
+     } 
 
 ### Query Mechanism 
 Bolt does not require definition of navigational properties. Instead, it leaves relational mapping to the developer (via explicit joins) and returns correlated records as tuples! 
