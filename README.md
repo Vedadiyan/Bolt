@@ -1,7 +1,7 @@
 # Bolt 
 *Bolt is a lightweight micro ORM which supports strongly-typed queries.*  
 Please note that:
- - Bolt does NOT generate any code and it is can only be used as a database-first solution
+ - Bolt does NOT generate any code and it can only be used as a database-first solution
  - Bolt is mainly focused on making queries and it has little support for running add, delete, or update commands
  - Bolt does NOT come with a change tracker and will never have one
 
