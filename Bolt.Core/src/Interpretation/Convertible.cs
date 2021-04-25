@@ -1,6 +1,6 @@
 using System;
 
-namespace Bolt.Core.Abstraction
+namespace Bolt.Core.Interpretation
 {
     public class Convertible
     {
