@@ -155,38 +155,6 @@ namespace Bolt.Core.Interpretation
                 {
                     if (callExpression.Type == typeof(DBO))
                     {
-                        // Value = ((ConstantExpression)callExpression.Arguments[0]).Value.ToString() + "(";
-                        // if (!(callExpression.Arguments[1] is ConstantExpression))
-                        // {
-                        //     LambdaExpression lambdaExpression = (LambdaExpression)((UnaryExpression)callExpression.Arguments[1]).Operand;
-                        //     if (lambdaExpression.Body is UnaryExpression lamdaUnaryExpression)
-                        //     {
-                        //         MemberExpression member = ((MemberExpression)((UnaryExpression)lamdaUnaryExpression).Operand);
-                        //         Value += getValue(expressionType, member.Member.ReflectedType, member.Member).ToString();
-                        //     }
-                        //     else if (lambdaExpression.Body is NewExpression lamdaNewExpression)
-                        //     {
-                        //         string[] memberNames = new string[lamdaNewExpression.Members.Count];
-                        //         for (int memberIndex = 0; memberIndex < lamdaNewExpression.Arguments.Count; memberIndex++)
-                        //         {
-                        //             var arg = lamdaNewExpression.Arguments[memberIndex];
-                        //             if (arg is MemberExpression argMemberExpression && argMemberExpression.Expression is ParameterExpression argParameterExpression)
-                        //             {
-                        //                 memberNames[memberIndex] = getValue(expressionType, argParameterExpression.Type, argMemberExpression.Member).ToString();
-                        //             }
-                        //             else
-                        //             {
-                        //                 throw new Exception("Unsupported Expression");
-                        //             }
-                        //         }
-                        //         Value += String.Join(',', memberNames);
-                        //     }
-                        //     else if (lambdaExpression.Body is MemberExpression lamdaMemberExpression)
-                        //     {
-                        //         Value += getValue(expressionType, lamdaMemberExpression.Member.ReflectedType, lamdaMemberExpression.Member).ToString();
-                        //     }
-                        // }
-                        // Value += ")";
                         LambdaExpression lambdaExpression = LambdaExpression.Lambda(callExpression);
                         DBO lamda = (DBO)lambdaExpression.Compile().DynamicInvoke();
                         Value = lamda.EExpression(expressionType);
@@ -271,7 +239,6 @@ namespace Bolt.Core.Interpretation
                         {
                             LambdaExpression lambdaExpression = Expression.Lambda(newExpression1.Arguments[index]);
                             DBO lamda = (DBO)lambdaExpression.Compile().DynamicInvoke();
-                            //Value = new Name(name + " = " + lamda.EExpression(expressionType).ToString());
                             ExpressionTypes _expressionType = default;
                             switch (expressionType)
                             {
