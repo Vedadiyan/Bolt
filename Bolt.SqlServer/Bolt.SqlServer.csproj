@@ -7,7 +7,7 @@
     <Authors>Pouya Vedadiyan</Authors>
     <Company>Centaurus</Company>
     <PackageDescription>Bolt implementation for Sql Server</PackageDescription>
-    <RepositoryUrl>https://github.com/Vedadiyan/Bolt.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Vedadiyan/Bolt</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Bolt.Core/Bolt.Core.csproj" />
