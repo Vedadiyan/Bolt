@@ -41,5 +41,36 @@ Example:
 		}
 	} 
 
+### Query Mechanism 
+Bolt does not require definition of navigational properties. Instead, it leaves relational mapping to the developer (via explicit joins) and returns correlated records as tuples! 
 
+Example: 
+
+    Query<User> sampleQuery = 
+	    new Query<User>()
+		    .Join<User, Like>(x=> x.Left.Id == x.Right.Id)
+		    // if required, you can use a named tuple
+		    // example: .Where<(User usr, Like like)>(x=> x.like.Date > DBO.Function<DateTime>("GETDATE()"))
+		    .Where<Like>(x=> x.Date == /* Get current date at (database) server side */ DBO.Function<DateTime>("GETDATE()"))
+		    .Select();
+Bolt does not know in advance on what database it should run the query, and similar to conventional database drivers, it requires a connection string. 
+
+Example: 
+
+    ResultSet resultSet = new ResultSet(sampleQuery);
+    await resultSet.LoadAsync("[connection string]");
+    var result= resultSet.ToList();
+Each item of the `result` list comes with a `GetEntity<T()` method which allows for accessing the desired record. 
+
+Example: 
+
+    foreach(var item in result) {
+	    var user = item.GetEntity<User>();
+	    var like = item.GetEntity<Like>();
+	}
+
+---
+To be continued
+
+ 
 
