@@ -16,7 +16,6 @@ Bolt is an annotation driven framework. To define a data model, a class together
 | SurrogateKey | Marks a property as an auto-incremented or database-generated key | `[SurrogateKey] public long Id {get; set;}`
 |UniqueKey| Marks a property as a unique key | `[UniqueKey] public string Email {get; set;}`
 |CompositePrimaryKey| Adds a property to a composite primary key group | `[CompositePrimaryKey("G1")] public string Email {get; set;}`
-|
 
 Bolts also requires data model registration via the `DSS` helper. 
 
