@@ -40,6 +40,8 @@ namespace Bolt.SqlServer.Commands
             }
             return this;
         }
+        // This is just for compatibility purpose
+        // This is method will soon be obsolete and will be replaced with an `Items` property 
         public List<Result> ToList() {
             return resultSet;
         }
