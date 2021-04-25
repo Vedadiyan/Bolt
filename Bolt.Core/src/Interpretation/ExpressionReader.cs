@@ -330,6 +330,8 @@ namespace Bolt.Core.Interpretation
                 var value = new ExpressionReader(exp, expressionType, stack, sb);
             }
         }
+        // Synonym to readLeft 
+        // Must be removed and meged with readLeft as read
         private void readRight(Expression exp)
         {
             if (exp is BinaryExpression binaryExpression)
