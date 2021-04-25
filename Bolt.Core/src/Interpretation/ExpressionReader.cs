@@ -24,7 +24,7 @@ namespace Bolt.Core.Interpretation
             if (expression is BinaryExpression binaryExpression)
             {
                 sb.Append("(");
-                readLeft(binaryExpression.Left);
+                read(binaryExpression.Left);
                 switch (binaryExpression.NodeType)
                 {
                     case ExpressionType.Equal:
@@ -43,7 +43,7 @@ namespace Bolt.Core.Interpretation
                             break;
                         }
                 }
-                readRight(binaryExpression.Right);
+                read(binaryExpression.Right);
                 sb.Append(")");
             }
             else if (expression is MemberExpression memberExpression)
@@ -302,37 +302,7 @@ namespace Bolt.Core.Interpretation
                 throw new Exception("Unsupported Expression");
             }
         }
-        private void readLeft(Expression exp)
-        {
-            if (exp is BinaryExpression binaryExpression)
-            {
-                sb.Append("(");
-                var leftExpression = new ExpressionReader(binaryExpression.Left, expressionType, stack, sb);
-                switch (binaryExpression.NodeType)
-                {
-                    case ExpressionType.Equal:
-                    case ExpressionType.NotEqual:
-                        {
-                            stack.Push(binaryExpression.NodeType);
-                            break;
-                        }
-                    default:
-                        {
-                            sb.Append(convertNodeType(binaryExpression.NodeType));
-                            break;
-                        }
-                }
-                var rightExpression = new ExpressionReader(binaryExpression.Right, expressionType, stack, sb);
-                sb.Append(")");
-            }
-            else
-            {
-                var value = new ExpressionReader(exp, expressionType, stack, sb);
-            }
-        }
-        // Synonym to readLeft 
-        // Must be removed and meged with readLeft as read
-        private void readRight(Expression exp)
+        private void read(Expression exp)
         {
             if (exp is BinaryExpression binaryExpression)
             {
