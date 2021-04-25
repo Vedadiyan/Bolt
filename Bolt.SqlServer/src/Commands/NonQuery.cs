@@ -10,6 +10,12 @@ using Bolt.Core.Storage;
 
 namespace Bolt.SqlServer.Commands
 {
+
+    /*
+        This class is under development 
+        NOT TESTED
+    */
+    
     public class NonQuery
     {
         private List<List<string>> buffer;
