@@ -9,16 +9,12 @@ using Bolt.Core.Abstraction;
 
 namespace Bolt.SqlServer.Commands
 {
-    public class ResultSet //: IEnumerator<Result>, IEnumerable<Result>
+    public class ResultSet 
     {
         private IQuery query;
         private List<Result> resultSet;
         public int Count { get => resultSet?.Count ?? 0; }
-        // private int currentIndex = -1;
-        // public Result Current => this[currentIndex];
-
-        // object IEnumerator.Current => this[currentIndex];
-
+        public List<Result> Items => resultSet;
         public ResultSet(IQuery query)
         {
             this.query = query;
@@ -40,45 +36,10 @@ namespace Bolt.SqlServer.Commands
             }
             return this;
         }
-        // This is just for compatibility purpose
-        // This is method will soon be obsolete and will be replaced with an `Items` property 
+        [Obsolete("Use Item property instead", true)]
         public List<Result> ToList() {
             return resultSet;
         }
-        // public bool MoveNext()
-        // {
-        //     return currentIndex++ < Count - 1;
-        // }
-
-        // public void Reset()
-        // {
-        //     currentIndex = -1;
-        // }
-
-        // public void Dispose()
-        // {
-
-        // }
-
-        // public IEnumerator<Result> GetEnumerator()
-        // {
-        //     Reset();
-        //     return this;
-        // }
-
-        // IEnumerator IEnumerable.GetEnumerator()
-        // {
-        //     Reset();
-        //     return this;
-        // }
-
-        // public Result this[int index]
-        // {
-        //     get
-        //     {
-        //         return resultSet[index];
-        //     }
-        // }
     }
     public class Result
     {
