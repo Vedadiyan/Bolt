@@ -52,7 +52,7 @@ Example:
 		    // example: .Where<(User usr, Like like)>(x=> x.like.Date > DBO.Function<DateTime>("GETDATE()"))
 		    .Where<Like>(x=> x.Date == /* Get current date at (database) server side */ DBO.Function<DateTime>("GETDATE()"))
 		    .Select();
-Bolt does not know in advance on what database it should run the query, and similar to conventional database drivers, it requires a connection string. 
+Bolt does not know against which database it should run the query in advance, and similar to conventional database drivers, it requires a connection string. 
 
 Example: 
 
