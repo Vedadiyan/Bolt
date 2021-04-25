@@ -65,7 +65,7 @@ Each item of the `result` list comes with a `GetEntity<T()` method which allows 
 
 Example: 
 
-    foreach(var item in rresultSet.Items) {
+    foreach(var item in resultSet.Items) {
 	    var user = item.GetEntity<User>();
 	    var like = item.GetEntity<Like>();
 	}
