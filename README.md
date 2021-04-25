@@ -1,6 +1,9 @@
 # Bolt 
 *Bolt is a lightweight micro ORM which supports strongly-typed queries.*  
-Please note that Bolt does not generate any code and it is can only be used as a database-first solution. 
+Please note that:
+ - Bolt does NOT generate any code and it is can only be used as a database-first solution
+ - Bolt is mainly focused on making queries and it has little support for running add, delete, or update commands
+ - Bolt does NOT come with a change tracker and will never have one
 
 ## Getting Started 
 Bolt requires strongly typed data models to produce a SQL query. However, Bolt can also handle certain select parameters that cannot be included in the data model on the fly. This documentation will dive into all features of Bolt ORM in detail. 
