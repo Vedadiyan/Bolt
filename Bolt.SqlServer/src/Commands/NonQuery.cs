@@ -11,7 +11,8 @@ using Bolt.Core.Storage;
 namespace Bolt.SqlServer.Commands
 {
 
-    public class NonQuery
+    // THIS CLASS IS UNDER DEVELOPMENT
+    class NonQuery
     {
         private List<List<string>> buffer;
         private readonly string connectionString;
