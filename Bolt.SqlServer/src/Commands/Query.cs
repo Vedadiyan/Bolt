@@ -185,7 +185,7 @@ namespace Bolt.SqlServer.Commands
             selectClauses.Enqueue(() => _select(expression));
             return this;
         }
-        public void _select<R>(Expression<Func<R, object>> expression) where R : new()
+        private void _select<R>(Expression<Func<R, object>> expression) where R : new()
         {
             if (select.Length > 0)
             {

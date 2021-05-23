@@ -13,7 +13,7 @@ using Bolt.Core.Storage;
 namespace Bolt.SqlServer.Commands
 {
     // THIS CLASS IS UNDER DEVELOPMENT 
-    internal class NonQuery
+    public class NonQuery
     {
         private SemaphoreSlim semaphore;
         private readonly string connectionString;
@@ -214,7 +214,7 @@ namespace Bolt.SqlServer.Commands
                             throw new Exception("Composite Surrogate Keys are not supported");
                         }
                     }
-                    cmd.Parameters.AddWithValue($"@{column.Value.Name}", column.Value.PropertyInfo.GetValue(row));
+                    cmd.Parameters.AddWithValue($"@{column.Value.Name}", column.Value.PropertyInfo.GetValue(row) ?? DBNull.Value);
                 }
             }
             cmd.Transaction = transaction;
