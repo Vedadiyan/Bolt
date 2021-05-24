@@ -5,9 +5,11 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Bolt.Core.Annotations;
 using Bolt.Core.Storage;
 
 namespace Bolt.SqlServer.Commands
@@ -214,7 +216,16 @@ namespace Bolt.SqlServer.Commands
                             throw new Exception("Composite Surrogate Keys are not supported");
                         }
                     }
-                    cmd.Parameters.AddWithValue($"@{column.Value.Name}", column.Value.PropertyInfo.GetValue(row) ?? DBNull.Value);
+                    var value = column.Value.PropertyInfo.GetValue(row);
+                    if (value == null)
+                    {
+                        var defaultAttribute = column.Value.PropertyInfo.GetCustomAttribute<DefaultValueAttribute>();
+                        cmd.Parameters.AddWithValue($"@{column.Value.Name}", defaultAttribute?.Value ?? DBNull.Value);
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue($"@{column.Value.Name}", value);
+                    }
                 }
             }
             cmd.Transaction = transaction;
