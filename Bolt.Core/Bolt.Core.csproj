@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <PackageId>Centaurus.Bolt.Core</PackageId>
-    <Version>1.0.0-nightly06162021113100</Version>
+    <Version>1.0.0-nightly06162021025800</Version>
     <Authors>Pouya Vedadiyan</Authors>
     <Company>Centaurus</Company>
     <PackageDescription>Bolt is a lightweight micro ORM which supports strongly-typed queries</PackageDescription>
