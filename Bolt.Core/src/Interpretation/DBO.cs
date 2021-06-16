@@ -20,10 +20,6 @@ namespace Bolt.Core.Interpretation
                 return new Convertible(functionName);
             });
         }
-        // public static Convertible<T> Function<T, R>(SqlFunctions sqlFunction, Expression<Func<R, object>> exp)
-        // {
-        //     return default;
-        // }
         public static implicit operator int(DBO convertible)
         {
             return default;
