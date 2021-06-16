@@ -32,7 +32,7 @@ namespace Bolt.SqlServer.Commands
                         values.Append(',');
                     }
                     columns.Append(column.Value.Name);
-                    values.Append("@").Append(column.Value.Name);
+                    values.Append("@").Append(column.Value.UniqueId);
                 }
                 else
                 {

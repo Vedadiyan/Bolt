@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bolt.SqlServer", "Bolt.SqlS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bolt.MySQL", "Bolt.MySQL\Bolt.MySQL.csproj", "{A33CCB71-E270-4567-93CC-144BEBB953F8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,5 +60,17 @@ Global
 		{A33CCB71-E270-4567-93CC-144BEBB953F8}.Release|x64.Build.0 = Release|Any CPU
 		{A33CCB71-E270-4567-93CC-144BEBB953F8}.Release|x86.ActiveCfg = Release|Any CPU
 		{A33CCB71-E270-4567-93CC-144BEBB953F8}.Release|x86.Build.0 = Release|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Debug|x64.Build.0 = Debug|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Debug|x86.Build.0 = Debug|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Release|x64.ActiveCfg = Release|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Release|x64.Build.0 = Release|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Release|x86.ActiveCfg = Release|Any CPU
+		{511EEA3E-5D7F-4EFF-A46A-89943B42B7B3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -24,6 +24,7 @@ namespace Bolt.Core.Abstraction
         private IQueryFormatter queryFormatter;
         public NonQueryBase(IQueryFormatter queryFormatter, int poolSize = 10)
         {
+            this.queryFormatter = queryFormatter;
             bufferedCommands = new List<(object Row, Command Command, int TransactionNumber)>();
             semaphore = new SemaphoreSlim(poolSize);
         }
@@ -220,14 +221,14 @@ namespace Bolt.Core.Abstraction
                     {
                         var defaultAttribute = column.Value.PropertyInfo.GetCustomAttribute<DefaultValueAttribute>();
                         DbParameter parameter = cmd.CreateParameter();
-                        parameter.ParameterName = $"@{column.Value.Name}";
+                        parameter.ParameterName = $"@{column.Value.UniqueId}";
                         parameter.Value = defaultAttribute?.Value ?? DBNull.Value;
                         cmd.Parameters.Add(parameter);
                     }
                     else
                     {
                         DbParameter parameter = cmd.CreateParameter();
-                        parameter.ParameterName =$"@{column.Value.Name}";
+                        parameter.ParameterName =$"@{column.Value.UniqueId}";
                         parameter.Value = value;
                         cmd.Parameters.Add(parameter);
                     }
@@ -361,7 +362,7 @@ namespace Bolt.Core.Abstraction
                     {
                         values.Append(',');
                     }
-                    values.Append(column.Value.Name).Append("=@").Append(column.Value.Name);
+                    values.Append(column.Value.Name).Append("=@").Append(column.Value.UniqueId);
                 }
                 else
                 {
