@@ -2,19 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Text;
+using Bolt.Core.Abstraction;
 using Bolt.Core.Interpretation;
 using Bolt.Core.Storage;
 
-namespace Bolt.SqlServer.Commands
+namespace Bolt.Core
 {
-    internal enum CommandTypes
+    public enum CommandTypes
     {
         INSERT,
         UPDATE,
         DELETE,
         TRUNCATE
     }
-    internal readonly struct Command
+    public readonly struct Command
     {
         public string SqlCommand { get; }
         public CommandTypes CommandType { get; }
@@ -44,10 +45,10 @@ namespace Bolt.SqlServer.Commands
             }
             return _command;
         }
-        public static Command GetConditionalCommand<TableType>(Command command, Expression<Predicate<TableType>> predicate)
+        public static Command GetConditionalCommand<TableType>(Command command, Expression<Predicate<TableType>> predicate, IQueryFormatter queryFormatter)
         {
             StringBuilder expression = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(predicate.Body, ExpressionTypes.FullyEvaluated, new Stack<ExpressionType>(), expression);
+            ExpressionReader expressionReader = new ExpressionReader(predicate.Body, ExpressionTypes.FullyEvaluated, new Stack<ExpressionType>(), expression, queryFormatter);
             return new Command($"{command.SqlCommand} WHERE {expression.ToString()}", command.CommandType);
         }
     }
