@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <PackageId>Centaurus.Bolt.MySql</PackageId>
+    <Version>1.0.0-nightly06162021113100</Version>
+    <Authors>Pouya Vedadiyan</Authors>
+    <Company>Centaurus</Company>
+    <PackageDescription>Bolt implementation for MySql</PackageDescription>
+    <RepositoryUrl>https://github.com/Vedadiyan/Bolt</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Bolt.Core/Bolt.Core.csproj" />
