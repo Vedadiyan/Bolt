@@ -19,13 +19,13 @@ namespace Bolt.Core.Abstraction
         private SemaphoreSlim semaphore;
         private TimeSpan DefaultTimeout { get; set; } = TimeSpan.FromSeconds(30);
         private List<(DbTransaction transaction, SemaphoreSlim semaphore)> transactions;
-        private List<(object Row, Command Command, int TransactionNumber)> bufferedCommands;
+        private List<(Type Type, object Row, Command Command, int TransactionNumber)> bufferedCommands;
         private static ConcurrentDictionary<Type, ConcurrentDictionary<CommandTypes, string>> commands = new ConcurrentDictionary<Type, ConcurrentDictionary<CommandTypes, string>>();
         private IQueryFormatter queryFormatter;
         public NonQueryBase(IQueryFormatter queryFormatter, int poolSize = 10)
         {
             this.queryFormatter = queryFormatter;
-            bufferedCommands = new List<(object Row, Command Command, int TransactionNumber)>();
+            bufferedCommands = new List<(Type Type, object Row, Command Command, int TransactionNumber)>();
             semaphore = new SemaphoreSlim(poolSize);
         }
         protected abstract DbConnection GetDbConnection();
@@ -71,7 +71,7 @@ namespace Bolt.Core.Abstraction
             Queue<Task> insertQueue = new Queue<Task>();
             foreach (var i in bufferedCommands)
             {
-                insertQueue.Enqueue(ExecuteNonQuery(i.Row, i.Command, i.TransactionNumber));
+                insertQueue.Enqueue(ExecuteNonQuery(i.Type, i.Row, i.Command, i.TransactionNumber));
             }
             await Task.WhenAll(insertQueue);
         }
@@ -86,43 +86,52 @@ namespace Bolt.Core.Abstraction
         }
         public async Task<TableType> InsertAsync<TableType>(TableType row, int? transactionNumber = null)
         {
-            return (TableType)await ExecuteNonQuery(row, GetCommand(typeof(TableType), CommandTypes.INSERT), transactionNumber ?? 0);
+            Type tableType = typeof(TableType);
+            return (TableType)await ExecuteNonQuery(tableType, row, GetCommand(tableType, CommandTypes.INSERT), transactionNumber ?? 0);
         }
         public void BufferedInsert<TableType>(TableType row, int? transactionNumber = null)
         {
-            bufferedCommands.Add((row, GetCommand(typeof(TableType), CommandTypes.INSERT), transactionNumber ?? 0));
+            Type tableType = typeof(TableType);
+            bufferedCommands.Add((tableType, row, GetCommand(tableType, CommandTypes.INSERT), transactionNumber ?? 0));
         }
         public async Task<object> UpdateAsync<TableType>(TableType row, Expression<Predicate<TableType>> predicate, int? transactionNumber = null)
         {
-            return await ExecuteNonQuery(row, Command.GetConditionalCommand<TableType>(GetCommand(typeof(TableType), CommandTypes.UPDATE), predicate, queryFormatter), transactionNumber ?? 0);
+            Type tableType = typeof(TableType);
+            return await ExecuteNonQuery(tableType, row, Command.GetConditionalCommand<TableType>(GetCommand(tableType, CommandTypes.UPDATE), predicate, queryFormatter), transactionNumber ?? 0);
         }
         public void BufferedUpdate<TableType>(TableType row, Expression<Predicate<TableType>> predicate, int? transactionNumber = null)
         {
-            bufferedCommands.Add((row, Command.GetConditionalCommand<TableType>(GetCommand(typeof(TableType), CommandTypes.UPDATE), predicate, queryFormatter), transactionNumber ?? 0));
+            Type tableType = typeof(TableType);
+            bufferedCommands.Add((tableType, row, Command.GetConditionalCommand<TableType>(GetCommand(tableType, CommandTypes.UPDATE), predicate, queryFormatter), transactionNumber ?? 0));
         }
         public async Task<object> DeleteAsync<TableType>(Expression<Predicate<TableType>> predicate, int? transactionNumber = null)
         {
-            return await ExecuteNonQuery(null, Command.GetConditionalCommand<TableType>(GetCommand(typeof(TableType), CommandTypes.DELETE), predicate, queryFormatter), transactionNumber ?? 0);
+            Type tableType = typeof(TableType);
+            return await ExecuteNonQuery(tableType, null, Command.GetConditionalCommand<TableType>(GetCommand(tableType, CommandTypes.DELETE), predicate, queryFormatter), transactionNumber ?? 0);
         }
         public void BufferedDelete<TableType>(TableType row, Expression<Predicate<TableType>> predicate, int? transactionNumber = null)
         {
-            bufferedCommands.Add((row, Command.GetConditionalCommand<TableType>(GetCommand(typeof(TableType), CommandTypes.DELETE), predicate, queryFormatter), transactionNumber ?? 0));
+            Type tableType = typeof(TableType);
+            bufferedCommands.Add((tableType, row, Command.GetConditionalCommand<TableType>(GetCommand(tableType, CommandTypes.DELETE), predicate, queryFormatter), transactionNumber ?? 0));
         }
         public async Task<object> TruncateAsync<TableType>(int? transactionNumber = null)
         {
-            return await ExecuteNonQuery(null, GetCommand(typeof(TableType), CommandTypes.TRUNCATE), transactionNumber ?? 0);
+            Type tableType = typeof(TableType);
+            return await ExecuteNonQuery(tableType, null, GetCommand(tableType, CommandTypes.TRUNCATE), transactionNumber ?? 0);
         }
         public async Task<object> DeleteAllAsync<TableType>(int? transactionNumber = null)
         {
-            return await ExecuteNonQuery(null, GetCommand(typeof(TableType), CommandTypes.DELETE), transactionNumber ?? 0);
+            Type tableType = typeof(TableType);
+            return await ExecuteNonQuery(tableType, null, GetCommand(tableType, CommandTypes.DELETE), transactionNumber ?? 0);
         }
         public async Task<TableType[]> InsertManyAsync<TableType>(TableType[] rows, int? transactionNumber = null)
         {
             Command command = GetCommand(typeof(TableType), CommandTypes.INSERT);
             Queue<Task> insertQueue = new Queue<Task>();
+            Type tableType = typeof(TableType);
             for (int i = 0, j = 0; i < rows.Length; i++, j++)
             {
-                insertQueue.Enqueue(ExecuteNonQuery(rows[i], command, transactionNumber ?? (j = j >= (transactions?.Count ?? 0) ? 0 : j)));
+                insertQueue.Enqueue(ExecuteNonQuery(tableType, rows[i], command, transactionNumber ?? (j = j >= (transactions?.Count ?? 0) ? 0 : j)));
             }
             await Task.WhenAll(insertQueue);
             return rows;
@@ -181,7 +190,7 @@ namespace Bolt.Core.Abstraction
             }
             bufferedCommands.Clear();
         }
-        protected virtual async Task<object> ExecuteNonQuery(object row, Command command, int iter)
+        protected virtual async Task<object> ExecuteNonQuery(Type type, object row, Command command, int iter)
         {
             SemaphoreSlim semaphore = null;
             DbConnection connection = null;
@@ -203,7 +212,7 @@ namespace Bolt.Core.Abstraction
             ColumnInfo surrogateKey = null;
             if (row != null)
             {
-                foreach (var column in DSS.GetTableInfo(row.GetType()).Columns)
+                foreach (var column in DSS.GetTableInfo(type).Columns)
                 {
                     if (column.Value.SurrogateKey != null)
                     {
@@ -228,7 +237,7 @@ namespace Bolt.Core.Abstraction
                     else
                     {
                         DbParameter parameter = cmd.CreateParameter();
-                        parameter.ParameterName =$"@{column.Value.UniqueId}";
+                        parameter.ParameterName = $"@{column.Value.UniqueId}";
                         parameter.Value = value;
                         cmd.Parameters.Add(parameter);
                     }
