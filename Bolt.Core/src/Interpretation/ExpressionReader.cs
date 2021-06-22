@@ -141,7 +141,20 @@ namespace Bolt.Core.Interpretation
                         {
                             LambdaExpression lambdaExpression = LambdaExpression.Lambda(methodCallExpression);
                             Value = lambdaExpression.Compile().DynamicInvoke() ?? DBNull.Value;
-                            sb.Append(formatType(Value));
+                            //Experimental Feature
+                            if (Value is DBO dbo)
+                            {
+                                if (stack.Count != 0)
+                                {
+                                    sb.Append(convertNodeType(stack.Pop()));
+                                }
+                                sb.Append(dbo.EExpression(expressionType).Value);
+                            }
+                            //End of Experimental Feature
+                            else
+                            {
+                                sb.Append(formatType(Value));
+                            }
                             break;
                         }
                 }
