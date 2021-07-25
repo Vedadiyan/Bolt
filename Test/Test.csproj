@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Bolt.MySql/Bolt.MySql.csproj" />
+     <ProjectReference Include="../Bolt.SqlServer/Bolt.SqlServer.csproj" />
   </ItemGroup>
 </Project>

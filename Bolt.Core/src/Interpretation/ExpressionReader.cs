@@ -384,6 +384,14 @@ namespace Bolt.Core.Interpretation
                         {
                             return name.Value;
                         }
+                        else if (input is Guid guid)
+                        {
+                            if (stack.Count > 0)
+                            {
+                                sb.Append(convertNodeType(stack.Pop()));
+                            }
+                            return $"'{guid.ToString()}'";
+                        }
                         else
                         {
                             return null;
