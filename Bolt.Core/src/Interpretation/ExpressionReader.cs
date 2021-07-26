@@ -15,11 +15,13 @@ namespace Bolt.Core.Interpretation
         private StringBuilder sb;
         private Stack<ExpressionType> stack;
         private ExpressionTypes expressionType;
-        public ExpressionReader(Expression expression, ExpressionTypes expressionType, Stack<ExpressionType> stack, StringBuilder sb)
+        private IQueryFormatter queryFormatter;
+        public ExpressionReader(Expression expression, ExpressionTypes expressionType, Stack<ExpressionType> stack, StringBuilder sb, IQueryFormatter queryFormatter)
         {
             this.expressionType = expressionType;
             this.stack = stack;
             this.sb = sb;
+            this.queryFormatter = queryFormatter;
             Value = "";
             if (expression is BinaryExpression binaryExpression)
             {
@@ -55,7 +57,7 @@ namespace Bolt.Core.Interpretation
                         sb.Append(convertNodeType(stack.Pop()));
                         if (innerMemberExpression.Expression is ParameterExpression parameterExpression)
                         {
-                            Value = getValue(expressionType, innerMemberExpression.Type, memberExpression.Member);
+                            Value = queryFormatter.Format(expressionType, innerMemberExpression.Type, memberExpression.Member);
                         }
                         else
                         {
@@ -67,7 +69,7 @@ namespace Bolt.Core.Interpretation
                     {
                         // Get FullTableName Here and Make Sure You Get SQL Table Name
                         string parentClass = memberExpression.Member.ReflectedType.Name;
-                        Value = getValue(expressionType, memberExpression.Member.ReflectedType, memberExpression.Member);
+                        Value = queryFormatter.Format(expressionType, memberExpression.Member.ReflectedType, memberExpression.Member);
                     }
                 }
                 else
@@ -75,7 +77,7 @@ namespace Bolt.Core.Interpretation
                     if (memberExpression.Expression is ParameterExpression parameterExpression)
                     {
                         string parentClass = memberExpression.Member.ReflectedType.Name;
-                        Value = getValue(expressionType, memberExpression.Member.ReflectedType, memberExpression.Member);
+                        Value = queryFormatter.Format(expressionType, memberExpression.Member.ReflectedType, memberExpression.Member);
                     }
                     else
                     {
@@ -115,7 +117,7 @@ namespace Bolt.Core.Interpretation
                         {
                             MemberExpression member = ((MemberExpression)methodCallExpression.Object); ;
                             var value = ((ConstantExpression)methodCallExpression.Arguments[0]).Value.ToString();
-                            var info = getValue(expressionType, member.Member.ReflectedType, member.Member);
+                            var info = queryFormatter.Format(expressionType, member.Member.ReflectedType, member.Member);
                             sb.Append(" ").Append(info).Append(" LIKE '%").Append(value).Append("'");
                             break;
                         }
@@ -123,7 +125,7 @@ namespace Bolt.Core.Interpretation
                         {
                             MemberExpression member = ((MemberExpression)methodCallExpression.Object); ;
                             var value = ((ConstantExpression)methodCallExpression.Arguments[0]).Value.ToString();
-                            var info = getValue(expressionType, member.Member.ReflectedType, member.Member);
+                            var info = queryFormatter.Format(expressionType, member.Member.ReflectedType, member.Member);
                             sb.Append(" ").Append(info).Append(" LIKE '").Append(value).Append("%'");
                             break;
                         }
@@ -131,7 +133,7 @@ namespace Bolt.Core.Interpretation
                         {
                             MemberExpression member = ((MemberExpression)methodCallExpression.Object); ;
                             var value = ((ConstantExpression)methodCallExpression.Arguments[0]).Value.ToString();
-                            var info = getValue(expressionType, member.Member.ReflectedType, member.Member);
+                            var info = queryFormatter.Format(expressionType, member.Member.ReflectedType, member.Member);
                             sb.Append(" ").Append(info).Append(" LIKE '%").Append(value).Append("%'");
                             break;
                         }
@@ -139,7 +141,20 @@ namespace Bolt.Core.Interpretation
                         {
                             LambdaExpression lambdaExpression = LambdaExpression.Lambda(methodCallExpression);
                             Value = lambdaExpression.Compile().DynamicInvoke() ?? DBNull.Value;
-                            sb.Append(formatType(Value));
+                            //Experimental Feature
+                            if (Value is DBO dbo)
+                            {
+                                if (stack.Count != 0)
+                                {
+                                    sb.Append(convertNodeType(stack.Pop()));
+                                }
+                                sb.Append(dbo.EExpression(expressionType).Value);
+                            }
+                            //End of Experimental Feature
+                            else
+                            {
+                                sb.Append(formatType(Value));
+                            }
                             break;
                         }
                 }
@@ -190,7 +205,7 @@ namespace Bolt.Core.Interpretation
                 {
                     if (DSS.TryGetTableInfo(member2.Member.ReflectedType, out TableInfo tableInfo))
                     {
-                        Value = getValue(expressionType, member2.Member.ReflectedType, member2.Member);
+                        Value = queryFormatter.Format(expressionType, member2.Member.ReflectedType, member2.Member);
                         sb.Append(formatType(Value));
                     }
                     else
@@ -201,7 +216,7 @@ namespace Bolt.Core.Interpretation
                 }
                 else
                 {
-                    new ExpressionReader(convertExpression.Operand, expressionType, stack, sb);
+                    new ExpressionReader(convertExpression.Operand, expressionType, stack, sb, queryFormatter);
                 }
             }
             else if (expression is ConditionalExpression conditionalExpression)
@@ -224,7 +239,7 @@ namespace Bolt.Core.Interpretation
                 {
                     if (newExpression1.Arguments[index] is MemberExpression argumentMemberExpression)
                     {
-                        Value = getValue(expressionType, argumentMemberExpression.Member.ReflectedType, argumentMemberExpression.Member);
+                        Value = queryFormatter.Format(expressionType, argumentMemberExpression.Member.ReflectedType, argumentMemberExpression.Member);
                         sb.Append(formatType(Value));
                     }
                     else
@@ -274,7 +289,7 @@ namespace Bolt.Core.Interpretation
             if (exp is BinaryExpression binaryExpression)
             {
                 sb.Append("(");
-                var leftExpression = new ExpressionReader(binaryExpression.Left, expressionType, stack, sb);
+                var leftExpression = new ExpressionReader(binaryExpression.Left, expressionType, stack, sb, queryFormatter);
                 switch (binaryExpression.NodeType)
                 {
                     case ExpressionType.Equal:
@@ -289,12 +304,12 @@ namespace Bolt.Core.Interpretation
                             break;
                         }
                 }
-                var rightExpression = new ExpressionReader(binaryExpression.Right, expressionType, stack, sb);
+                var rightExpression = new ExpressionReader(binaryExpression.Right, expressionType, stack, sb, queryFormatter);
                 sb.Append(")");
             }
             else
             {
-                var value = new ExpressionReader(exp, expressionType, stack, sb);
+                var value = new ExpressionReader(exp, expressionType, stack, sb, queryFormatter);
             }
         }
         private static string convertNodeType(ExpressionType expressionType)
@@ -369,6 +384,14 @@ namespace Bolt.Core.Interpretation
                         {
                             return name.Value;
                         }
+                        else if (input is Guid guid)
+                        {
+                            if (stack.Count > 0)
+                            {
+                                sb.Append(convertNodeType(stack.Pop()));
+                            }
+                            return $"'{guid.ToString()}'";
+                        }
                         else
                         {
                             return null;
@@ -426,37 +449,6 @@ namespace Bolt.Core.Interpretation
                 default:
                     {
                         return $"'{input.ToString()}'";
-                    }
-            }
-        }
-        internal static object getValue(ExpressionTypes expressionType, Type type, MemberInfo member)
-        {
-            TableInfo tableInfo = DSS.GetTableInfo(type);
-            switch (expressionType)
-            {
-                case ExpressionTypes.FullyEvaluated:
-                    {
-                        return new Name(tableInfo.Columns[member.Name].FullyEvaluatedColumnName);
-                    }
-                case ExpressionTypes.FullyEvaluatedWithTypeName:
-                    {
-                        return new Name("[" + tableInfo.type.Name + "]." + tableInfo.Columns[member.Name].Name);
-                    }
-                case ExpressionTypes.FullyEvaluatedWithTypeNameAndAlias:
-                    {
-                        return new Name("[" + tableInfo.type.Name + "]." + tableInfo.Columns[member.Name].Name + " AS " + tableInfo.Columns[member.Name].Alias);
-                    }
-                case ExpressionTypes.FullyEvaluatedWithAlias:
-                    {
-                        return new Name(tableInfo.Columns[member.Name].FullyEvaluatedColumnName + " AS " + tableInfo.Columns[member.Name].Alias);
-                    }
-                case ExpressionTypes.Alias:
-                    {
-                        return new Name(tableInfo.Columns[member.Name].Alias);
-                    }
-                default:
-                    {
-                        return null;
                     }
             }
         }

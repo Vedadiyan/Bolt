@@ -4,8 +4,9 @@ using System.Data.SqlClient;
 using System.Text;
 using Bolt.Core.Abstraction;
 using Bolt.Core.Storage;
+using MySqlConnector;
 
-namespace Bolt.SqlServer.Commands
+namespace Bolt.MySql.Commands
 {
     public class NonQuery : NonQueryBase
     {
@@ -46,13 +47,13 @@ namespace Bolt.SqlServer.Commands
                     }
                 }
             }
-            cmd.Append("INSERT INTO ").Append(tableinfo.FullyEvaluatedTableName).Append("(").Append(columns).Append(")").Append(" VALUES (").Append(values).Append("); SELECT scope_identity() AS ID");
+            cmd.Append("INSERT INTO ").Append(tableinfo.FullyEvaluatedTableName).Append("(").Append(columns).Append(")").Append(" VALUES (").Append(values).Append("); SELECT LAST_INSERT_ID() AS ID");
             return cmd.ToString();
         }
 
         protected override DbConnection GetDbConnection()
         {
-            return new SqlConnection(connectionString);
+            return new MySqlConnection(connectionString);
         }
     }
 

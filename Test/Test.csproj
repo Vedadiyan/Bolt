@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+  <!-- <ItemGroup>
+    <ProjectReference Include="../Bolt.MySql/Bolt.MySql.csproj" />
+  </ItemGroup> -->
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.0" />
+        <PackageReference Include="Centaurus.Bolt.SqlServer" Version="1.0.0-nightly07252021014600" />
+  </ItemGroup>
+</Project>

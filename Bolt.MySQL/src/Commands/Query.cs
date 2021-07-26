@@ -7,8 +7,9 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Bolt.Core.Storage;
 using Bolt.Core.Abstraction;
+using MySqlConnector;
 
-namespace Bolt.SqlServer.Commands
+namespace Bolt.MySql.Commands
 {
     public class Query<T> : QueryBase<T> where T : class, new()
     {
@@ -18,7 +19,7 @@ namespace Bolt.SqlServer.Commands
         }
         public override IAsyncEnumerable<Dictionary<Type, object>> Execute(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellation)
         {
-            return Execute(new SqlConnection(connectionString), timeout, sqlCancellationToken, enumeratorCancellation);
+            return Execute(new MySqlConnection(connectionString), timeout, sqlCancellationToken, enumeratorCancellation);
         }
     }
 }

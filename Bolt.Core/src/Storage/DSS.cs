@@ -5,7 +5,7 @@ using Bolt.Core.Annotations;
 
 namespace Bolt.Core.Storage
 {
-    public record ColumnInfo(string Name, string FullyEvaluatedColumnName, string Alias, string TableKey, PropertyInfo PropertyInfo, SurrogateKeyAttribute SurrogateKey);
+    public record ColumnInfo(string Name, string UniqueId, string FullyEvaluatedColumnName, string Alias, string TableKey, PropertyInfo PropertyInfo, SurrogateKeyAttribute SurrogateKey);
     public record TableInfo(Type type, string TableName, string FullyEvaluatedTableName, Dictionary<string, ColumnInfo> Columns);
     public class DSS
     {
@@ -43,7 +43,7 @@ namespace Bolt.Core.Storage
                     string columnName = columnAttribute.ColumnName ?? property.Name;
                     string fullyEvaluatedColumnName = fullyEvaluatedTableName + "." + columnName;
                     string columnHash = getHash(fullyEvaluatedColumnName);
-                    ColumnInfo columnInfo = new ColumnInfo(columnName, fullyEvaluatedColumnName, columnHash, type.Name, property, property.GetCustomAttribute<SurrogateKeyAttribute>());
+                    ColumnInfo columnInfo = new ColumnInfo(columnName, Guid.NewGuid().ToString().Replace("-", ""), fullyEvaluatedColumnName, columnHash, type.Name, property, property.GetCustomAttribute<SurrogateKeyAttribute>());
                     columnInfos.Add(property.Name, columnInfo);
                     columnMap.Add(columnHash, columnInfo);
                 }
@@ -63,7 +63,7 @@ namespace Bolt.Core.Storage
                     string columnName = columnAttribute.ColumnName ?? property.Name;
                     string fullyEvaluatedColumnName = fullyEvaluatedTableName + "." + columnName;
                     string columnHash = getHash(fullyEvaluatedColumnName);
-                    ColumnInfo columnInfo = new ColumnInfo(columnName, fullyEvaluatedColumnName, columnHash, type.Name, property, property.GetCustomAttribute<SurrogateKeyAttribute>());
+                    ColumnInfo columnInfo = new ColumnInfo(columnName, Guid.NewGuid().ToString().Replace("-", ""), fullyEvaluatedColumnName, columnHash, type.Name, property, property.GetCustomAttribute<SurrogateKeyAttribute>());
                     columnInfos.Add(property.Name, columnInfo);
                     columnMap.Add(columnHash, columnInfo);
                 }
