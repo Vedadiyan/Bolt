@@ -9,7 +9,7 @@ using Bolt.Core.Storage;
 using Bolt.Core.Abstraction;
 using MySqlConnector;
 
-namespace Bolt.MySql
+namespace Bolt.MySql.Commands
 {
     public class Query<T> : QueryBase<T> where T : class, new()
     {

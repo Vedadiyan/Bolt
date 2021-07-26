@@ -6,7 +6,7 @@ using Bolt.Core.Abstraction;
 using Bolt.Core.Storage;
 using MySqlConnector;
 
-namespace Bolt.MySql
+namespace Bolt.MySql.Commands
 {
     public class NonQuery : NonQueryBase
     {
