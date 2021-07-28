@@ -1,3 +1,4 @@
+
 # Bolt 
 *Bolt is a lightweight micro ORM which supports strongly-typed queries.*  
 Please note that:
@@ -21,6 +22,8 @@ Bolt is an annotation driven framework. To define a data model, a class together
 |CompositePrimaryKey| Adds a property to a composite primary key group | `[CompositePrimaryKey("G1")] public string Email {get; set;}`
 
 Bolts also requires data model registration via the `DSS` helper. 
+
+***Update: Bolt will no longer require registration of data models via the DSS helper in future releases.***
 
 Example: 
 
