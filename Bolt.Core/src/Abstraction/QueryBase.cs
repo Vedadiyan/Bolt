@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Bolt.Core.Annotations;
 using Bolt.Core.Interpretation;
 using Bolt.Core.Storage;
 
@@ -16,7 +17,6 @@ namespace Bolt.Core.Abstraction
     public abstract class QueryBase<T> : IQuery where T : new()
     {
         protected Dictionary<string, TableInfo> TableInfo { get; set; }
-        protected Dictionary<string, PropertyInfo> Properties { get; set; }
         protected Dictionary<string, Func<object>> TableObjects { get; set; }
         protected StringBuilder SelectClause { get; set; }
         protected StringBuilder WhereCluase { get; set; }
@@ -47,11 +47,6 @@ namespace Bolt.Core.Abstraction
             TableInfo = new Dictionary<string, TableInfo>();
             TableInfo tableInfo = DSS.GetTableInfo<T>();
             TableInfo.Add(tableInfo.TableName, tableInfo);
-            Properties = new Dictionary<string, PropertyInfo>();
-            foreach (var property in tableInfo.type.GetProperties())
-            {
-                Properties.Add(tableInfo.Columns[property.Name].Alias, property);
-            }
             TableObjects = new Dictionary<string, Func<object>>();
             TableObjects.Add(tableInfo.type.Name, () => Activator.CreateInstance(tableInfo.type));
             WhereClauses = new Queue<Action>();
@@ -147,10 +142,6 @@ namespace Bolt.Core.Abstraction
             if (!TableInfo.ContainsKey(right.TableName))
             {
                 TableInfo.Add(right.TableName, right);
-                foreach (var property in right.type.GetProperties())
-                {
-                    Properties.Add(right.Columns[property.Name].Alias, property);
-                }
                 TableObjects.Add(right.type.Name, () => Activator.CreateInstance(right.type));
                 tableName = right.FullyEvaluatedTableName + " AS " + queryFormatter.Format(right.type.Name);
             }
@@ -250,7 +241,8 @@ namespace Bolt.Core.Abstraction
             else
             {
                 var _sb = sb.ToString();
-                if(!string.IsNullOrWhiteSpace(_sb)) {
+                if (!string.IsNullOrWhiteSpace(_sb))
+                {
                     SelectClause.Append(", ");
                 }
                 SelectClause.Append(sb);
@@ -358,15 +350,17 @@ namespace Bolt.Core.Abstraction
                             if (DSS.TryGetColumnInfo(column.ColumnName, out ColumnInfo columnInfo))
                             {
                                 TableInfo tableInfo = DSS.GetTableInfo(columnInfo.TableKey);
+                                foreach(var i in tableInfo.Columns[column.ColumnName].Proccessors) {
+                                    value = i.Process(value);
+                                }
                                 if (list.ContainsKey(tableInfo.type))
                                 {
-                                    Properties[column.ColumnName].SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
+                                    columnInfo.PropertyInfo.SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
                                 }
                                 else
                                 {
                                     list.Add(tableInfo.type, TableObjects[tableInfo.type.Name]());
-                                    Properties[column.ColumnName].SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
-
+                                    columnInfo.PropertyInfo.SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
                                 }
                             }
                             else

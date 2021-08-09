@@ -23,7 +23,7 @@ namespace Test
         {
 
             TestDbContext testDbContext = new TestDbContext();
-            IQuery s = new Query<ScheduleModel>().Select<Bolt.Core.Void>(x=> DBO.Function<Bolt.Core.Void>("MAX(id)")).Select().Top(100).Distinct();
+            IQuery s = new Query<ScheduleModel>().Select<Bolt.Core.Void>(x=> DBO.Function<Bolt.Core.Void>("MAX(id)")).Select().Top(100).Distinct().OrderByDescending<ScheduleModel>(x=> x.Start);
             Query<ScheduleModel> ss = (Query<ScheduleModel>)s;
             var zz = ss.GetSqlQuery();
             Console.WriteLine("Hello World!");
@@ -34,7 +34,7 @@ namespace Test
     public class ScheduleModel
     {
         [Column("id")]
-        public long Id { get; set; }
+        public long Iduuuu { get; set; }
         [Column("`name`")]
         public string FriendlyName { get; set; }
         [Column("`trigger`")]
