@@ -116,13 +116,15 @@ namespace Bolt.Core.Abstraction
             this.clearGenericSelect = clearGenericSelect;
             return this;
         }
-        public virtual void Top(int i)
+        public virtual QueryBase<T> Top(int i)
         {
             top = i;
+            return this;
         }
-        public virtual void Distinct(bool distinct = true)
+        public virtual QueryBase<T> Distinct(bool distinct = true)
         {
             this.distinct = distinct;
+            return this;
         }
         private void where<R>(Expression<Predicate<R>> expression)
         {
