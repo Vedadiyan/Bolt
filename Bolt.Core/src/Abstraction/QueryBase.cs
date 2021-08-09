@@ -32,6 +32,9 @@ namespace Bolt.Core.Abstraction
         protected ExpressionTypes ExpressionTypeVariant { get; set; }
         protected ExpressionTypes SelectExpressionType { get; set; }
         private IQueryFormatter queryFormatter;
+        private int top = -1;
+        private bool distinct = false;
+        private bool clearGenericSelect = false;
         public QueryBase(IQueryFormatter queryFormatter)
         {
             this.queryFormatter = queryFormatter;
@@ -107,10 +110,19 @@ namespace Bolt.Core.Abstraction
             SelectClauses.Enqueue(() => select(expression));
             return this;
         }
-        public virtual QueryBase<T> Select()
+        public virtual QueryBase<T> Select(bool clearGenericSelect = true)
         {
             SelectClauses.Enqueue(() => select());
+            this.clearGenericSelect = clearGenericSelect;
             return this;
+        }
+        public virtual void Top(int i)
+        {
+            top = i;
+        }
+        public virtual void Distinct(bool distinct = true)
+        {
+            this.distinct = distinct;
         }
         private void where<R>(Expression<Predicate<R>> expression)
         {
@@ -202,9 +214,9 @@ namespace Bolt.Core.Abstraction
         }
         private void select()
         {
-            SelectClause.Clear();
             int eCount = 0;
             int iCount = 0;
+            StringBuilder sb = new StringBuilder();
             foreach (var tableInfo in TableInfo)
             {
                 iCount = 0;
@@ -212,21 +224,30 @@ namespace Bolt.Core.Abstraction
                 {
                     if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithAlias)
                     {
-                        SelectClause.Append(columnInfo.Value.FullyEvaluatedColumnName + " AS " + columnInfo.Value.Alias);
+                        sb.Append(columnInfo.Value.FullyEvaluatedColumnName + " AS " + columnInfo.Value.Alias);
                     }
                     else if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithTypeNameAndAlias)
                     {
-                        SelectClause.Append("[" + tableInfo.Value.type.Name + "]." + columnInfo.Value.Name + " AS " + columnInfo.Value.Alias);
+                        sb.Append(queryFormatter.Format(tableInfo.Value.type.Name) + "." + columnInfo.Value.Name + " AS " + columnInfo.Value.Alias);
                     }
                     if (iCount++ < tableInfo.Value.Columns.Count - 1)
                     {
-                        SelectClause.Append(", \r\n");
+                        sb.Append(", \r\n");
                     }
                 }
                 if (eCount++ < TableInfo.Count - 1)
                 {
-                    SelectClause.Append(", \r\n");
+                    sb.Append(", \r\n");
                 }
+            }
+            if (clearGenericSelect)
+            {
+                SelectClause.Clear();
+                SelectClause.Append(sb);
+            }
+            else
+            {
+                SelectClause.Insert(1, sb.Append(", "));
             }
         }
         public virtual string GetSqlQuery()
@@ -249,8 +270,16 @@ namespace Bolt.Core.Abstraction
                 SelectClauses.Dequeue()();
             }
             query
-            .Append("SELECT ")
-            .Append(SelectClause)
+            .Append("SELECT ");
+            if (distinct)
+            {
+                query.Append(" DISTINCT ");
+            }
+            if (top > 0)
+            {
+                query.Append(" TOP ").Append(top);
+            }
+            query.Append(SelectClause)
             .Append(" FROM ");
             if (TableInfo.Count == 1)
             {

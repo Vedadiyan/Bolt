@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <PackageId>Centaurus.Bolt.SqlServer</PackageId>
-    <Version>1.0.0-nightly07252021014600</Version>
+    <Version>1.1.1</Version>
     <Authors>Pouya Vedadiyan</Authors>
     <Company>Centaurus</Company>
     <PackageDescription>Bolt implementation for Sql Server</PackageDescription>
