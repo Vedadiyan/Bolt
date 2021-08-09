@@ -279,7 +279,7 @@ namespace Bolt.Core.Abstraction
             }
             if (top > 0)
             {
-                query.Append(" TOP ").Append(top);
+                query.Append(" TOP ").Append(top).Append(" ");
             }
             query.Append(SelectClause)
             .Append(" FROM ");
