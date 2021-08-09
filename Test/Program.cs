@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Bolt.Core.Abstraction;
 using Bolt.Core.Annotations;
+using Bolt.Core.Interpretation;
 using Bolt.Core.Mappers;
 using Bolt.Core.Storage;
 using Bolt.SqlServer;
@@ -22,6 +23,9 @@ namespace Test
         {
 
             TestDbContext testDbContext = new TestDbContext();
+            IQuery s = new Query<ScheduleModel>().Select<Bolt.Core.Void>(x=> DBO.Function<Bolt.Core.Void>("MAX(id)")).Select().Top(100).Distinct();
+            Query<ScheduleModel> ss = (Query<ScheduleModel>)s;
+            var zz = ss.GetSqlQuery();
             Console.WriteLine("Hello World!");
         }
     }

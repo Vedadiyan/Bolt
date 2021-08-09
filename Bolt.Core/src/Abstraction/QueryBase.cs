@@ -110,7 +110,7 @@ namespace Bolt.Core.Abstraction
             SelectClauses.Enqueue(() => select(expression));
             return this;
         }
-        public virtual QueryBase<T> Select(bool clearGenericSelect = true)
+        public virtual QueryBase<T> Select(bool clearGenericSelect = false)
         {
             SelectClauses.Enqueue(() => select());
             this.clearGenericSelect = clearGenericSelect;
@@ -249,7 +249,11 @@ namespace Bolt.Core.Abstraction
             }
             else
             {
-                SelectClause.Insert(1, sb.Append(", "));
+                var _sb = sb.ToString();
+                if(!string.IsNullOrWhiteSpace(_sb)) {
+                    SelectClause.Append(", ");
+                }
+                SelectClause.Append(sb);
             }
         }
         public virtual string GetSqlQuery()
