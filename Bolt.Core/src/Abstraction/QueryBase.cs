@@ -31,13 +31,13 @@ namespace Bolt.Core.Abstraction
         protected Queue<Action> HavingClauses { get; set; }
         protected ExpressionTypes ExpressionTypeVariant { get; set; }
         protected ExpressionTypes SelectExpressionType { get; set; }
-        private IQueryFormatter queryFormatter;
-        private int top = -1;
-        private bool distinct = false;
+        protected IQueryFormatter QueryFormatter;
+        protected int _Top { get; set; } = -1;
+        protected bool _Distinct { get; set; }
         private bool clearGenericSelect = false;
         public QueryBase(IQueryFormatter queryFormatter)
         {
-            this.queryFormatter = queryFormatter;
+            QueryFormatter = queryFormatter;
             SelectClause = new StringBuilder();
             WhereCluase = new StringBuilder();
             JoinCluase = new StringBuilder();
@@ -113,19 +113,19 @@ namespace Bolt.Core.Abstraction
         }
         public virtual QueryBase<T> Top(int i)
         {
-            top = i;
+            _Top = i;
             return this;
         }
         public virtual QueryBase<T> Distinct(bool distinct = true)
         {
-            this.distinct = distinct;
+            _Distinct = distinct;
             return this;
         }
         private void where<R>(Expression<Predicate<R>> expression)
         {
             WhereCluase.Clear();
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             WhereCluase.Append(sb.ToString());
         }
         private void join<L, R>(string joinType, Expression<Func<(L CurrentTable, R TargetTable), object>> expression)
@@ -136,14 +136,14 @@ namespace Bolt.Core.Abstraction
                 throw new Exception($"{left.TableName} is not present in the query");
             }
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypes.FullyEvaluatedWithTypeName, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypes.FullyEvaluatedWithTypeName, new Stack<ExpressionType>(), sb, QueryFormatter);
             TableInfo right = DSS.GetTableInfo<R>();
             string tableName = null;
             if (!TableInfo.ContainsKey(right.TableName))
             {
                 TableInfo.Add(right.TableName, right);
                 TableObjects.Add(right.type.Name, () => Activator.CreateInstance(right.type));
-                tableName = right.FullyEvaluatedTableName + " AS " + queryFormatter.Format(right.type.Name);
+                tableName = right.FullyEvaluatedTableName + " AS " + QueryFormatter.Format(right.type.Name);
             }
             else
             {
@@ -158,7 +158,7 @@ namespace Bolt.Core.Abstraction
         private void groupBy<R>(Expression<Func<R, object>> expression) where R : new()
         {
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             if (GroupByClause.Length > 0)
             {
                 GroupByClause.Append(", \r\n");
@@ -168,7 +168,7 @@ namespace Bolt.Core.Abstraction
         private void having<R>(Expression<Predicate<R>> expression) where R : new()
         {
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             if (HavingClause.Length > 0)
             {
                 HavingClause.Append(", \r\n");
@@ -178,7 +178,7 @@ namespace Bolt.Core.Abstraction
         private void orderBy<R>(Expression<Func<R, object>> expression) where R : new()
         {
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             if (OrderByClause.Length > 0)
             {
                 OrderByClause.Append(", \r\n");
@@ -188,7 +188,7 @@ namespace Bolt.Core.Abstraction
         private void orderByDescending<R>(Expression<Func<R, object>> expression) where R : new()
         {
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             if (OrderByClause.Length > 0)
             {
                 OrderByClause.Append(", \r\n");
@@ -202,7 +202,7 @@ namespace Bolt.Core.Abstraction
                 SelectClause.Append(", \r\n");
             }
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, SelectExpressionType, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, SelectExpressionType, new Stack<ExpressionType>(), sb, QueryFormatter);
             SelectClause.Append($"{sb.ToString()}");
         }
         private void select()
@@ -221,7 +221,7 @@ namespace Bolt.Core.Abstraction
                     }
                     else if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithTypeNameAndAlias)
                     {
-                        sb.Append(queryFormatter.Format(tableInfo.Value.type.Name) + "." + columnInfo.Value.Name + " AS " + columnInfo.Value.Alias);
+                        sb.Append(QueryFormatter.Format(tableInfo.Value.type.Name) + "." + columnInfo.Value.Name + " AS " + columnInfo.Value.Alias);
                     }
                     if (iCount++ < tableInfo.Value.Columns.Count - 1)
                     {
@@ -248,87 +248,7 @@ namespace Bolt.Core.Abstraction
                 SelectClause.Append(sb);
             }
         }
-        public virtual string GetSqlQuery()
-        {
-            TableInfo tableInfo = DSS.GetTableInfo<T>();
-            if (JoinCluase.Length > 0)
-            {
-                ExpressionTypeVariant = ExpressionTypes.FullyEvaluatedWithTypeName;
-                SelectExpressionType = ExpressionTypes.FullyEvaluatedWithTypeNameAndAlias;
-            }
-            else
-            {
-                ExpressionTypeVariant = ExpressionTypes.FullyEvaluated;
-                SelectExpressionType = ExpressionTypes.FullyEvaluatedWithAlias;
-            }
-            StringBuilder query = new StringBuilder();
-
-            while (SelectClauses.Count > 0)
-            {
-                SelectClauses.Dequeue()();
-            }
-            query
-            .Append("SELECT ");
-            if (distinct)
-            {
-                query.Append(" DISTINCT ");
-            }
-            if (top > 0)
-            {
-                query.Append(" TOP ").Append(top).Append(" ");
-            }
-            query.Append(SelectClause)
-            .Append(" FROM ");
-            if (TableInfo.Count == 1)
-            {
-                query.Append(tableInfo.FullyEvaluatedTableName);
-            }
-            else
-            {
-                query.Append(tableInfo.FullyEvaluatedTableName + " AS [" + tableInfo.type.Name + "]");
-            }
-            if (JoinCluase.Length > 0)
-            {
-                query.Append(JoinCluase);
-            }
-            else
-            {
-                ExpressionTypeVariant = ExpressionTypes.FullyEvaluated;
-            }
-            while (WhereClauses.Count > 0)
-            {
-                WhereClauses.Dequeue()();
-            }
-            if (WhereCluase.Length > 0)
-            {
-                query.Append(" WHERE ").Append(WhereCluase);
-            }
-            while (GroupByClauses.Count > 0)
-            {
-                GroupByClauses.Dequeue()();
-            }
-            if (GroupByClause.Length > 0)
-            {
-                query.Append(" GROUP BY ").Append(GroupByClause);
-            }
-            while (HavingClauses.Count > 0)
-            {
-                HavingClauses.Dequeue()();
-            }
-            if (HavingClause.Length > 0)
-            {
-                query.Append(" HAVING (").Append(HavingClause).Append(")");
-            }
-            while (OrderByClauses.Count > 0)
-            {
-                OrderByClauses.Dequeue()();
-            }
-            if (OrderByClause.Length > 0)
-            {
-                query.Append(" ORDER BY ").Append(OrderByClause);
-            }
-            return query.ToString();
-        }
+        public abstract string GetSqlQuery();
         protected async IAsyncEnumerable<Dictionary<Type, object>> Execute(DbConnection connection, int timeout, CancellationToken sqlCancellationToken, [EnumeratorCancellation] CancellationToken enumeratorCancellation)
         {
             using (connection)
@@ -350,7 +270,8 @@ namespace Bolt.Core.Abstraction
                             if (DSS.TryGetColumnInfo(column.ColumnName, out ColumnInfo columnInfo))
                             {
                                 TableInfo tableInfo = DSS.GetTableInfo(columnInfo.TableKey);
-                                foreach(var i in tableInfo.Columns[columnInfo.PropertyInfo.Name].Proccessors) {
+                                foreach (var i in tableInfo.Columns[columnInfo.PropertyInfo.Name].Proccessors)
+                                {
                                     value = i.Process(value);
                                 }
                                 if (list.ContainsKey(tableInfo.type))

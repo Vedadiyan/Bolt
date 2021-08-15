@@ -8,7 +8,7 @@ namespace Test
 {
     public class TestDbContext : DbContext
     {
-        protected override string ConnectionString => "Server=192.168.233.200;port=7005;User ID=root;Password=;Database=TestDb";
+        protected override string ConnectionString => "Server=192.168.233.200;port=7005;User ID=root;Password=Pou39148!;Database=TestDb";
         protected override int Timeout => 3000;
     }
     class Program
@@ -16,7 +16,7 @@ namespace Test
         static void Main(string[] args)
         {
             TestDbContext testDbContext = new TestDbContext();
-            IQuery query = new Query<User>().Select();
+            IQuery query = new Query<User>().Top(1).Select();
             var test = testDbContext.ExecuteQueryAsync(query).Result;
             Console.WriteLine("Hello World!");
         }
