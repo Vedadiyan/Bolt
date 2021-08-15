@@ -105,7 +105,7 @@ namespace Bolt.Core.Abstraction
             SelectClauses.Enqueue(() => select(expression));
             return this;
         }
-        public virtual QueryBase<T> Select(bool clearGenericSelect = false)
+        public virtual QueryBase<T> Select(bool clearGenericSelect = true)
         {
             SelectClauses.Enqueue(() => select());
             this.clearGenericSelect = clearGenericSelect;
@@ -350,7 +350,7 @@ namespace Bolt.Core.Abstraction
                             if (DSS.TryGetColumnInfo(column.ColumnName, out ColumnInfo columnInfo))
                             {
                                 TableInfo tableInfo = DSS.GetTableInfo(columnInfo.TableKey);
-                                foreach(var i in tableInfo.Columns[column.ColumnName].Proccessors) {
+                                foreach(var i in tableInfo.Columns[columnInfo.PropertyInfo.Name].Proccessors) {
                                     value = i.Process(value);
                                 }
                                 if (list.ContainsKey(tableInfo.type))

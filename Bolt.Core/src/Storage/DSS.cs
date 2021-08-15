@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Bolt.Core.Abstraction;
 using Bolt.Core.Annotations;
+using Bolt.Core.Processors;
 
 namespace Bolt.Core.Storage
 {
@@ -32,25 +33,7 @@ namespace Bolt.Core.Storage
         }
         public static void RegisterTableStructure<T>()
         {
-            Type type = typeof(T);
-            TableAttribute tableAttribute = type.GetCustomAttribute<TableAttribute>();
-            string fullyEvaluatedTableName = tableAttribute?.FullTableName() ?? type.Name;
-            Dictionary<string, ColumnInfo> columnInfos = new Dictionary<string, ColumnInfo>();
-            foreach (PropertyInfo property in type.GetProperties())
-            {
-                ColumnAttribute columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
-                if (columnAttribute != null)
-                {
-                    string columnName = columnAttribute.ColumnName ?? property.Name;
-                    string fullyEvaluatedColumnName = fullyEvaluatedTableName + "." + columnName;
-                    string columnHash = getHash(fullyEvaluatedColumnName);
-                    IProcessor[] processors = new IProcessor[0];
-                    ColumnInfo columnInfo = new ColumnInfo(columnName, Guid.NewGuid().ToString().Replace("-", ""), fullyEvaluatedColumnName, columnHash, type.Name, property, property.GetCustomAttribute<SurrogateKeyAttribute>(), processors);
-                    columnInfos.Add(property.Name, columnInfo);
-                    columnMap.Add(columnHash, columnInfo);
-                }
-            }
-            tableStructureStorage.Add(type.Name, new TableInfo(type, tableAttribute.TableName ?? type.Name, fullyEvaluatedTableName, columnInfos));
+            RegisterTableStructure(typeof(T));
         }
         public static void RegisterTableStructure(Type type)
         {
@@ -62,11 +45,15 @@ namespace Bolt.Core.Storage
                 ColumnAttribute columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
                 if (columnAttribute != null)
                 {
+                    JsonAttribute jsonAttribute = property.GetCustomAttribute<JsonAttribute>();
                     string columnName = columnAttribute.ColumnName ?? property.Name;
                     string fullyEvaluatedColumnName = fullyEvaluatedTableName + "." + columnName;
                     string columnHash = getHash(fullyEvaluatedColumnName);
-                    IProcessor[] processors = new IProcessor[0];
-                    ColumnInfo columnInfo = new ColumnInfo(columnName, Guid.NewGuid().ToString().Replace("-", ""), fullyEvaluatedColumnName, columnHash, type.Name, property, property.GetCustomAttribute<SurrogateKeyAttribute>(), processors);
+                    List<IProcessor> processors = new List<IProcessor>();
+                    if(jsonAttribute != null) {
+                        processors.Add(new JsonProcessor(property.PropertyType));
+                    }
+                    ColumnInfo columnInfo = new ColumnInfo(columnName, Guid.NewGuid().ToString().Replace("-", ""), fullyEvaluatedColumnName, columnHash, type.Name, property, property.GetCustomAttribute<SurrogateKeyAttribute>(), processors.ToArray());
                     columnInfos.Add(property.Name, columnInfo);
                     columnMap.Add(columnHash, columnInfo);
                 }
