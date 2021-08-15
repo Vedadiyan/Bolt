@@ -369,7 +369,7 @@ namespace Bolt.Core.Abstraction
                                 {
                                     expandoObject = new ExpandoObject();
                                 }
-                                expandoObject.TryAdd(column.ColumnName, value);
+                                expandoObject.TryAdd(column.ColumnName, value != DBNull.Value ? value : null);
                             }
                         }
                         if (expandoObject != null)
