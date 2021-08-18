@@ -14,7 +14,7 @@ using Bolt.Core.Storage;
 
 namespace Bolt.Core.Abstraction
 {
-    public abstract class NonQueryBase
+    public abstract class NonQueryBase : IDisposable
     {
         private SemaphoreSlim semaphore;
         private TimeSpan DefaultTimeout { get; set; } = TimeSpan.FromSeconds(30);
@@ -401,6 +401,11 @@ namespace Bolt.Core.Abstraction
             StringBuilder cmd = new StringBuilder();
             cmd.Append("TRUNCATE TABLE ").Append(tableinfo.FullyEvaluatedTableName);
             return cmd.ToString();
+        }
+
+        public void Dispose()
+        {
+            semaphore.Dispose();
         }
     }
 }
