@@ -14,7 +14,7 @@ using Bolt.Core.Storage;
 
 namespace Bolt.Core.Abstraction
 {
-    public abstract class NonQueryBase : IDisposable
+    public abstract class NonQueryBase : INonQuery
     {
         private SemaphoreSlim semaphore;
         private TimeSpan DefaultTimeout { get; set; } = TimeSpan.FromSeconds(30);
