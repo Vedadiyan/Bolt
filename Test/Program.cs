@@ -17,6 +17,9 @@ namespace Test
         {
             TestDbContext testDbContext = new TestDbContext();
             IQuery query = new Query<User>().Top(1).Select();
+            using(INonQuery nonQuery = testDbContext.GetNonQueryScope()) {
+                
+            }
             var test = testDbContext.ExecuteQueryAsync(query).Result;
             Console.WriteLine("Hello World!");
         }
