@@ -52,6 +52,6 @@ namespace Bolt.Core
             await resultSet.LoadAsync(ConnectionString, Timeout, cancellationToken, cancellationToken);
             return resultSet.Items;
         }
-        public abstract NonQueryBase GetNonQueryScope(int poolSize = 10);
+        public abstract INonQuery GetNonQueryScope(int poolSize = 10);
     }
 }

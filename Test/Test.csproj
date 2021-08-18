@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Bolt.Core/Bolt.Core.csproj" />
-    <ProjectReference Include="../Bolt.SqlServer/Bolt.SqlServer.csproj" />
+    <ProjectReference Include="../Bolt.MySQL/Bolt.MySQL.csproj" />
   </ItemGroup>
   <!-- <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.13.0" />

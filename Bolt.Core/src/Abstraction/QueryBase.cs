@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Bolt.Core.Annotations;
 using Bolt.Core.Interpretation;
 using Bolt.Core.Storage;
 
@@ -16,7 +17,6 @@ namespace Bolt.Core.Abstraction
     public abstract class QueryBase<T> : IQuery where T : new()
     {
         protected Dictionary<string, TableInfo> TableInfo { get; set; }
-        protected Dictionary<string, PropertyInfo> Properties { get; set; }
         protected Dictionary<string, Func<object>> TableObjects { get; set; }
         protected StringBuilder SelectClause { get; set; }
         protected StringBuilder WhereCluase { get; set; }
@@ -31,10 +31,13 @@ namespace Bolt.Core.Abstraction
         protected Queue<Action> HavingClauses { get; set; }
         protected ExpressionTypes ExpressionTypeVariant { get; set; }
         protected ExpressionTypes SelectExpressionType { get; set; }
-        private IQueryFormatter queryFormatter;
+        protected IQueryFormatter QueryFormatter;
+        protected int _Top { get; set; } = -1;
+        protected bool _Distinct { get; set; }
+        private bool clearGenericSelect = false;
         public QueryBase(IQueryFormatter queryFormatter)
         {
-            this.queryFormatter = queryFormatter;
+            QueryFormatter = queryFormatter;
             SelectClause = new StringBuilder();
             WhereCluase = new StringBuilder();
             JoinCluase = new StringBuilder();
@@ -44,11 +47,6 @@ namespace Bolt.Core.Abstraction
             TableInfo = new Dictionary<string, TableInfo>();
             TableInfo tableInfo = DSS.GetTableInfo<T>();
             TableInfo.Add(tableInfo.TableName, tableInfo);
-            Properties = new Dictionary<string, PropertyInfo>();
-            foreach (var property in tableInfo.type.GetProperties())
-            {
-                Properties.Add(tableInfo.Columns[property.Name].Alias, property);
-            }
             TableObjects = new Dictionary<string, Func<object>>();
             TableObjects.Add(tableInfo.type.Name, () => Activator.CreateInstance(tableInfo.type));
             WhereClauses = new Queue<Action>();
@@ -107,16 +105,27 @@ namespace Bolt.Core.Abstraction
             SelectClauses.Enqueue(() => select(expression));
             return this;
         }
-        public virtual QueryBase<T> Select()
+        public virtual QueryBase<T> Select(bool clearGenericSelect = true)
         {
             SelectClauses.Enqueue(() => select());
+            this.clearGenericSelect = clearGenericSelect;
+            return this;
+        }
+        public virtual QueryBase<T> Top(int i)
+        {
+            _Top = i;
+            return this;
+        }
+        public virtual QueryBase<T> Distinct(bool distinct = true)
+        {
+            _Distinct = distinct;
             return this;
         }
         private void where<R>(Expression<Predicate<R>> expression)
         {
             WhereCluase.Clear();
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             WhereCluase.Append(sb.ToString());
         }
         private void join<L, R>(string joinType, Expression<Func<(L CurrentTable, R TargetTable), object>> expression)
@@ -127,18 +136,14 @@ namespace Bolt.Core.Abstraction
                 throw new Exception($"{left.TableName} is not present in the query");
             }
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypes.FullyEvaluatedWithTypeName, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypes.FullyEvaluatedWithTypeName, new Stack<ExpressionType>(), sb, QueryFormatter);
             TableInfo right = DSS.GetTableInfo<R>();
             string tableName = null;
             if (!TableInfo.ContainsKey(right.TableName))
             {
                 TableInfo.Add(right.TableName, right);
-                foreach (var property in right.type.GetProperties())
-                {
-                    Properties.Add(right.Columns[property.Name].Alias, property);
-                }
                 TableObjects.Add(right.type.Name, () => Activator.CreateInstance(right.type));
-                tableName = right.FullyEvaluatedTableName + " AS " + queryFormatter.Format(right.type.Name);
+                tableName = right.FullyEvaluatedTableName + " AS " + QueryFormatter.Format(right.type.Name);
             }
             else
             {
@@ -153,7 +158,7 @@ namespace Bolt.Core.Abstraction
         private void groupBy<R>(Expression<Func<R, object>> expression) where R : new()
         {
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             if (GroupByClause.Length > 0)
             {
                 GroupByClause.Append(", \r\n");
@@ -163,7 +168,7 @@ namespace Bolt.Core.Abstraction
         private void having<R>(Expression<Predicate<R>> expression) where R : new()
         {
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             if (HavingClause.Length > 0)
             {
                 HavingClause.Append(", \r\n");
@@ -173,7 +178,7 @@ namespace Bolt.Core.Abstraction
         private void orderBy<R>(Expression<Func<R, object>> expression) where R : new()
         {
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             if (OrderByClause.Length > 0)
             {
                 OrderByClause.Append(", \r\n");
@@ -183,7 +188,7 @@ namespace Bolt.Core.Abstraction
         private void orderByDescending<R>(Expression<Func<R, object>> expression) where R : new()
         {
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypeVariant, new Stack<ExpressionType>(), sb, QueryFormatter);
             if (OrderByClause.Length > 0)
             {
                 OrderByClause.Append(", \r\n");
@@ -197,14 +202,14 @@ namespace Bolt.Core.Abstraction
                 SelectClause.Append(", \r\n");
             }
             StringBuilder sb = new StringBuilder();
-            ExpressionReader expressionReader = new ExpressionReader(expression.Body, SelectExpressionType, new Stack<ExpressionType>(), sb, queryFormatter);
+            ExpressionReader expressionReader = new ExpressionReader(expression.Body, SelectExpressionType, new Stack<ExpressionType>(), sb, QueryFormatter);
             SelectClause.Append($"{sb.ToString()}");
         }
         private void select()
         {
-            SelectClause.Clear();
             int eCount = 0;
             int iCount = 0;
+            StringBuilder sb = new StringBuilder();
             foreach (var tableInfo in TableInfo)
             {
                 iCount = 0;
@@ -212,96 +217,38 @@ namespace Bolt.Core.Abstraction
                 {
                     if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithAlias)
                     {
-                        SelectClause.Append(columnInfo.Value.FullyEvaluatedColumnName + " AS " + columnInfo.Value.Alias);
+                        sb.Append(columnInfo.Value.FullyEvaluatedColumnName + " AS " + columnInfo.Value.Alias);
                     }
                     else if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithTypeNameAndAlias)
                     {
-                        SelectClause.Append("[" + tableInfo.Value.type.Name + "]." + columnInfo.Value.Name + " AS " + columnInfo.Value.Alias);
+                        sb.Append(QueryFormatter.Format(tableInfo.Value.type.Name) + "." + columnInfo.Value.Name + " AS " + columnInfo.Value.Alias);
                     }
                     if (iCount++ < tableInfo.Value.Columns.Count - 1)
                     {
-                        SelectClause.Append(", \r\n");
+                        sb.Append(", \r\n");
                     }
                 }
                 if (eCount++ < TableInfo.Count - 1)
                 {
-                    SelectClause.Append(", \r\n");
+                    sb.Append(", \r\n");
                 }
             }
+            if (clearGenericSelect)
+            {
+                SelectClause.Clear();
+                SelectClause.Append(sb);
+            }
+            else
+            {
+                var _sb = sb.ToString();
+                if (!string.IsNullOrWhiteSpace(_sb))
+                {
+                    SelectClause.Append(", ");
+                }
+                SelectClause.Append(sb);
+            }
         }
-        public virtual string GetSqlQuery()
-        {
-            TableInfo tableInfo = DSS.GetTableInfo<T>();
-            if (JoinCluase.Length > 0)
-            {
-                ExpressionTypeVariant = ExpressionTypes.FullyEvaluatedWithTypeName;
-                SelectExpressionType = ExpressionTypes.FullyEvaluatedWithTypeNameAndAlias;
-            }
-            else
-            {
-                ExpressionTypeVariant = ExpressionTypes.FullyEvaluated;
-                SelectExpressionType = ExpressionTypes.FullyEvaluatedWithAlias;
-            }
-            StringBuilder query = new StringBuilder();
-
-            while (SelectClauses.Count > 0)
-            {
-                SelectClauses.Dequeue()();
-            }
-            query
-            .Append("SELECT ")
-            .Append(SelectClause)
-            .Append(" FROM ");
-            if (TableInfo.Count == 1)
-            {
-                query.Append(tableInfo.FullyEvaluatedTableName);
-            }
-            else
-            {
-                query.Append(tableInfo.FullyEvaluatedTableName + " AS [" + tableInfo.type.Name + "]");
-            }
-            if (JoinCluase.Length > 0)
-            {
-                query.Append(JoinCluase);
-            }
-            else
-            {
-                ExpressionTypeVariant = ExpressionTypes.FullyEvaluated;
-            }
-            while (WhereClauses.Count > 0)
-            {
-                WhereClauses.Dequeue()();
-            }
-            if (WhereCluase.Length > 0)
-            {
-                query.Append(" WHERE ").Append(WhereCluase);
-            }
-            while (GroupByClauses.Count > 0)
-            {
-                GroupByClauses.Dequeue()();
-            }
-            if (GroupByClause.Length > 0)
-            {
-                query.Append(" GROUP BY ").Append(GroupByClause);
-            }
-            while (HavingClauses.Count > 0)
-            {
-                HavingClauses.Dequeue()();
-            }
-            if (HavingClause.Length > 0)
-            {
-                query.Append(" HAVING (").Append(HavingClause).Append(")");
-            }
-            while (OrderByClauses.Count > 0)
-            {
-                OrderByClauses.Dequeue()();
-            }
-            if (OrderByClause.Length > 0)
-            {
-                query.Append(" ORDER BY ").Append(OrderByClause);
-            }
-            return query.ToString();
-        }
+        public abstract string GetSqlQuery();
         protected async IAsyncEnumerable<Dictionary<Type, object>> Execute(DbConnection connection, int timeout, CancellationToken sqlCancellationToken, [EnumeratorCancellation] CancellationToken enumeratorCancellation)
         {
             using (connection)
@@ -323,15 +270,18 @@ namespace Bolt.Core.Abstraction
                             if (DSS.TryGetColumnInfo(column.ColumnName, out ColumnInfo columnInfo))
                             {
                                 TableInfo tableInfo = DSS.GetTableInfo(columnInfo.TableKey);
+                                foreach (var i in tableInfo.Columns[columnInfo.PropertyInfo.Name].Proccessors)
+                                {
+                                    value = i.Process(value);
+                                }
                                 if (list.ContainsKey(tableInfo.type))
                                 {
-                                    Properties[column.ColumnName].SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
+                                    columnInfo.PropertyInfo.SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
                                 }
                                 else
                                 {
                                     list.Add(tableInfo.type, TableObjects[tableInfo.type.Name]());
-                                    Properties[column.ColumnName].SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
-
+                                    columnInfo.PropertyInfo.SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
                                 }
                             }
                             else
@@ -340,7 +290,7 @@ namespace Bolt.Core.Abstraction
                                 {
                                     expandoObject = new ExpandoObject();
                                 }
-                                expandoObject.TryAdd(column.ColumnName, value);
+                                expandoObject.TryAdd(column.ColumnName, value != DBNull.Value ? value : null);
                             }
                         }
                         if (expandoObject != null)

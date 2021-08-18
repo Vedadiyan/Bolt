@@ -1,114 +1,48 @@
 ﻿using System;
-using System.Data.SqlClient;
-using System.Reflection;
-using System.Threading.Tasks;
 using Bolt.Core.Abstraction;
 using Bolt.Core.Annotations;
-using Bolt.Core.Mappers;
-using Bolt.Core.Storage;
-using Bolt.SqlServer;
-using Bolt.SqlServer.Commands;
+using Bolt.MySql;
+using Bolt.MySql.Commands;
+
 namespace Test
 {
     public class TestDbContext : DbContext
     {
-        protected override string ConnectionString { get; }
-
+        protected override string ConnectionString => "Server=192.168.233.200;port=7005;User ID=root;Password=Pou39148!;Database=TestDb";
         protected override int Timeout => 3000;
     }
     class Program
     {
         static void Main(string[] args)
         {
-
             TestDbContext testDbContext = new TestDbContext();
+            IQuery query = new Query<User>().Top(1).Select();
+            using(INonQuery nonQuery = testDbContext.GetNonQueryScope()) {
+                
+            }
+            var test = testDbContext.ExecuteQueryAsync(query).Result;
             Console.WriteLine("Hello World!");
         }
     }
-   
-    [Table("Schedule")]
-    public class ScheduleModel
+    [Table("User")]
+    public class User
     {
         [Column("id")]
-        public long Id { get; set; }
-        [Column("`name`")]
-        public string FriendlyName { get; set; }
-        [Column("`trigger`")]
-        public string TriggerMethod { get; set; }
-        [Column("times_of_day")]
-        public string TimesJSON { get; set; }
-        [Column("days_of_week")]
-        public string DaysJSON { get; set; }
-        [Column("start")]
-        public DateTime Start { get; set; }
-        [Column("end")]
-        public DateTime End { get; set; }
-        [Column("service")]
-        public string Service { get; set; }
-        [Column("payload")]
-        public string PayloadJSON { get; set; }
-
-    }
-    [Table("[VideoContents]")]
-    public class VideoContent
-    {
+        [SurrogateKey]
         [PrimaryKey]
-        [Column]
-        public Guid Id { get; set; }
-        [Column]
-        public DateTimeOffset CreatedAt { get; set; }
-        [Column]
-        public string Title { get; set; }
-        [Column]
-        public Guid RelatedVideoContentId { get; set; }
-        [Column]
-        public Guid RelatedVideoContent2Id { get; set; }
-        [Column]
-        public int? Season { get; set; }
-        [Column]
-        public int? Episode { get; set; }
-        [Column]
-        public TimeSpan? Duration { get; set; }
-
+        public ulong Id { get; set; }
+        [Column("`first_name`")]
+        public string FirstName { get; set; }
+        [Column("`last_name`")]
+        public string LastName { get; set; }
+        [Column("email")]
+        public string Email { get; set; }
+        [Column("data")]
+        [Json]
+        public TestJsonClass Data { get; set; }
     }
-    [Table("[VideoContentTags]")]
-    public class VideoContentTag
+    public class TestJsonClass
     {
-        [PrimaryKey]
-        [Column]
-        public Guid Id { get; set; }
-        [Column]
-        public Guid ContentId { get; set; }
-        [Column]
-        public Guid TagId { get; set; }
-    }
-    [Table("[VideoContentCategories]")]
-    public class VideoContentCategory
-    {
-        [PrimaryKey]
-        [Column]
-        public Guid Id { get; set; }
-        [Column]
-        public Guid ContentId { get; set; }
-        [Column]
-        public Guid CategoryId { get; set; }
-    }
-    [Table("[Tags]")]
-    public class Tag
-    {
-        [PrimaryKey]
-        [Column]
-        public Guid Id { get; set; }
-        [Column]
-        public string Title { get; set; }
-    }
-    [Table("[Categories]")]
-    public class Category
-    {
-        [PrimaryKey]
-        [Column]
-        public Guid Id { get; set; }
-        [Column]
-        public string Title { get; set; }
+        public string PhoneNumber { get; set; }
     }
 }
