@@ -375,7 +375,7 @@ namespace Bolt.Core.Abstraction
                 }
                 else
                 {
-                    if (surrogateKey == null)
+                    if (surrogateKey == default)
                     {
                         surrogateKey = column;
                     }
