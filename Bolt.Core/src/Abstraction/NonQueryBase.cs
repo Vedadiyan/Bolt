@@ -159,7 +159,7 @@ namespace Bolt.Core.Abstraction
                     buffer.Clear();
                 }
                 Type type = rows[i].GetType();
-                TableInfo tableInfo = DSS.GetTableInfo(type);
+                Table tableInfo = TableMap.Current.GetTable(type);
                 Command command = GetCommand(type, commandType);
                 buffer.Append(command.GetSqlCommand(tableInfo, rows[i])).AppendLine(";");
             }
@@ -181,7 +181,7 @@ namespace Bolt.Core.Abstraction
                     buffer.Clear();
                 }
                 var row = bufferedCommands[i];
-                buffer.Append(row.Command.GetSqlCommand(DSS.GetTableInfo(row.Row.GetType()), row.Row)).AppendLine(";");
+                buffer.Append(row.Command.GetSqlCommand(TableMap.Current.GetTable(row.Row.GetType()), row.Row)).AppendLine(";");
             }
             if (buffer.Length > 0)
             {
@@ -209,35 +209,35 @@ namespace Bolt.Core.Abstraction
             DbCommand cmd = connection.CreateCommand();
             cmd.CommandTimeout = (int)DefaultTimeout.TotalSeconds;
             cmd.CommandText = command.SqlCommand;
-            ColumnInfo surrogateKey = null;
+            Column surrogateKey = default;
             if (row != null)
             {
-                foreach (var column in DSS.GetTableInfo(type).Columns)
+                foreach (var column in TableMap.Current.GetTable(type).GetColumns())
                 {
-                    if (column.Value.SurrogateKey != null)
+                    if (column.ColumnFeatures.IsSurrogateKey)
                     {
-                        if (surrogateKey == null)
+                        if (surrogateKey == default)
                         {
-                            surrogateKey = column.Value;
+                            surrogateKey = column;
                         }
                         else
                         {
                             throw new Exception("Composite Surrogate Keys are not supported");
                         }
                     }
-                    var value = column.Value.PropertyInfo.GetValue(row);
+                    var value = column.PropertyInfo.GetValue(row);
                     if (value == null)
                     {
-                        var defaultAttribute = column.Value.PropertyInfo.GetCustomAttribute<DefaultValueAttribute>();
+                        var defaultAttribute = column.PropertyInfo.GetCustomAttribute<DefaultValueAttribute>();
                         DbParameter parameter = cmd.CreateParameter();
-                        parameter.ParameterName = $"@{column.Value.UniqueId}";
+                        parameter.ParameterName = $"@{column.UniqueId}";
                         parameter.Value = defaultAttribute?.Value ?? DBNull.Value;
                         cmd.Parameters.Add(parameter);
                     }
                     else
                     {
                         DbParameter parameter = cmd.CreateParameter();
-                        parameter.ParameterName = $"@{column.Value.UniqueId}";
+                        parameter.ParameterName = $"@{column.UniqueId}";
                         parameter.Value = value;
                         cmd.Parameters.Add(parameter);
                     }
@@ -257,7 +257,7 @@ namespace Bolt.Core.Abstraction
             semaphore.Release();
             if (command.CommandType == CommandTypes.INSERT)
             {
-                if (surrogateKey != null)
+                if (surrogateKey != default)
                 {
                     surrogateKey.PropertyInfo.SetValue(row, Convert.ChangeType(result, surrogateKey.PropertyInfo.PropertyType));
                 }
@@ -359,25 +359,25 @@ namespace Bolt.Core.Abstraction
         protected abstract string CreateInsertCommand(Type type);
         protected virtual string CreateUpdateCommand(Type type)
         {
-            TableInfo tableinfo = DSS.GetTableInfo(type);
+            Table tableinfo = TableMap.Current.GetTable(type);
             StringBuilder cmd = new StringBuilder();
             StringBuilder values = new StringBuilder();
-            ColumnInfo surrogateKey = null;
-            foreach (var column in tableinfo.Columns)
+            Column surrogateKey = default;
+            foreach (var column in tableinfo.GetColumns())
             {
-                if (column.Value.SurrogateKey == null)
+                if (!column.ColumnFeatures.IsSurrogateKey)
                 {
                     if (values.Length > 0)
                     {
                         values.Append(',');
                     }
-                    values.Append(column.Value.Name).Append("=@").Append(column.Value.UniqueId);
+                    values.Append(column.ColumnName).Append("=@").Append(column.UniqueId);
                 }
                 else
                 {
                     if (surrogateKey == null)
                     {
-                        surrogateKey = column.Value;
+                        surrogateKey = column;
                     }
                     else
                     {
@@ -390,14 +390,14 @@ namespace Bolt.Core.Abstraction
         }
         protected virtual string CreateDeleteCommand(Type type)
         {
-            TableInfo tableinfo = DSS.GetTableInfo(type);
+            Table tableinfo = TableMap.Current.GetTable(type);
             StringBuilder cmd = new StringBuilder();
             cmd.Append("DELETE FROM ").Append(tableinfo.FullyEvaluatedTableName);
             return cmd.ToString();
         }
         protected virtual string CreateTruncateCommand(Type type)
         {
-            TableInfo tableinfo = DSS.GetTableInfo(type);
+            Table tableinfo = TableMap.Current.GetTable(type);
             StringBuilder cmd = new StringBuilder();
             cmd.Append("TRUNCATE TABLE ").Append(tableinfo.FullyEvaluatedTableName);
             return cmd.ToString();

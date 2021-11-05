@@ -24,13 +24,13 @@ namespace Bolt.Core
             SqlCommand = sqlCommand;
             CommandType = commandType;
         }
-        public string GetSqlCommand(TableInfo tableInfo, object row)
+        public string GetSqlCommand(Table tableInfo, object row)
         {
             string _command = SqlCommand;
-            foreach (var column in tableInfo.Columns)
+            foreach (var column in tableInfo.GetColumns())
             {
-                var value = column.Value.PropertyInfo.GetValue(row);
-                switch (Type.GetTypeCode(column.Value.PropertyInfo.PropertyType))
+                var value = column.PropertyInfo.GetValue(row);
+                switch (Type.GetTypeCode(column.PropertyInfo.PropertyType))
                 {
                     case TypeCode.Char:
                     case TypeCode.DateTime:
@@ -41,7 +41,7 @@ namespace Bolt.Core
                         value = (bool)value ? 1 : 0;
                         break;
                 }
-                _command = _command.Replace($"@{column.Value.Name}", value.ToString());
+                _command = _command.Replace($"@{column.ColumnName}", value.ToString());
             }
             return _command;
         }
