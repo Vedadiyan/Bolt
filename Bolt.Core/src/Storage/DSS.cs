@@ -28,7 +28,7 @@ namespace Bolt.Core.Storage
             PropertyInfo = propertyInfo;
             ColumnFeatures = columnFeatures;
             processors = new List<IProcessor>();
-            UniqueId = "C" + Guid.NewGuid().ToString().Replace("-", "");
+            UniqueId = $"{propertyInfo.DeclaringType.FullName}_{propertyInfo.Name}".Replace(".", "_");
         }
         public void AddProcessor(IProcessor processor)
         {
@@ -98,19 +98,22 @@ namespace Bolt.Core.Storage
         private Dictionary<string, Type> setB;
         private Dictionary<string, Type> setC;
         private Dictionary<string, Dictionary<string, Column>> setD;
+        private Dictionary<string, Dictionary<string, Column>> setE;
         private TableMap()
         {
             setA = new Dictionary<Type, Table>();
             setB = new Dictionary<string, Type>();
             setC = new Dictionary<string, Type>();
             setD = new Dictionary<string, Dictionary<string, Column>>();
+            setE = new Dictionary<string, Dictionary<string, Column>>();
         }
         public void Add(Table table, Column[] columns)
         {
             setA.Add(table.Type, table);
             setB.Add(table.Type.FullName, table.Type);
-            setC.Add(table.TableName, table.Type);
+            setC.Add(table.FullyEvaluatedTableName, table.Type);
             setD.Add(table.Type.FullName, columns.ToDictionary(x => x.PropertyInfo.Name, x => x));
+            setE.Add(table.Type.FullName, columns.ToDictionary(x => x.UniqueId, x => x));
         }
         public Table GetTable<T>()
         {
@@ -124,9 +127,13 @@ namespace Bolt.Core.Storage
         {
             return setA[setB[typeName]];
         }
-        public IReadOnlyDictionary<string, Column> GetColumns(Type type)
+        public IReadOnlyDictionary<string, Column> GetColumnsByTypeName(Type type)
         {
             return setD[type.FullName];
+        }
+        public IReadOnlyDictionary<string, Column> GetColumnsByUniqueId(Type type)
+        {
+            return setE[type.FullName];
         }
         public bool TryGetTable<T>(out Table table)
         {
@@ -138,7 +145,7 @@ namespace Bolt.Core.Storage
         }
         public bool TryGetTableByTableName(string tableName, out Table table)
         {
-            if (setB.TryGetValue(tableName, out Type type))
+            if (setC.TryGetValue(tableName, out Type type))
             {
                 return setA.TryGetValue(type, out table);
             }

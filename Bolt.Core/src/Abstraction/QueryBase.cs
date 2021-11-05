@@ -264,7 +264,7 @@ namespace Bolt.Core.Abstraction
                         {
                             if (TableMap.Current.TryGetTableByTableName(table.Key, out Table _table))
                             {
-                                IReadOnlyDictionary<string, Column> columns = TableMap.Current.GetColumns(_table.Type);
+                                IReadOnlyDictionary<string, Column> columns = TableMap.Current.GetColumnsByUniqueId(_table.Type);
                                 object instance = _table.Instance();
                                 foreach (var schemaInfo in table.Value)
                                 {
