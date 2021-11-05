@@ -26,7 +26,7 @@ namespace Bolt.MySql.Commands
 
         public override string GetSqlQuery()
         {
-            TableInfo tableInfo = DSS.GetTableInfo<T>();
+            Table tableInfo = TableMap.Current.GetTable<T>();
             if (JoinCluase.Length > 0)
             {
                 ExpressionTypeVariant = ExpressionTypes.FullyEvaluatedWithTypeName;
@@ -51,13 +51,13 @@ namespace Bolt.MySql.Commands
             }
             query.Append(SelectClause)
             .Append(" FROM ");
-            if (TableInfo.Count == 1)
+            if (Tables.Count == 1)
             {
                 query.Append(tableInfo.FullyEvaluatedTableName);
             }
             else
             {
-                query.Append(tableInfo.FullyEvaluatedTableName + " AS " + QueryFormatter.Format(tableInfo.type.Name) + "");
+                query.Append(tableInfo.FullyEvaluatedTableName + " AS " + QueryFormatter.Format(tableInfo.Type.FullName) + "");
             }
             if (JoinCluase.Length > 0)
             {

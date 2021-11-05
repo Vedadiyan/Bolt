@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Bolt.Core.Abstraction;
 using Bolt.Core.Annotations;
@@ -7,30 +9,167 @@ using Bolt.Core.Processors;
 
 namespace Bolt.Core.Storage
 {
-    public record ColumnInfo(string Name, string UniqueId, string FullyEvaluatedColumnName, string Alias, string TableKey, PropertyInfo PropertyInfo, SurrogateKeyAttribute SurrogateKey, IProcessor[] Proccessors);
-    public record TableInfo(Type type, string TableName, string FullyEvaluatedTableName, Dictionary<string, ColumnInfo> Columns);
+
+    public class ColumnFeatures
+    {
+        public bool IsSurrogateKey { get; init; }
+    }
+    public readonly struct Column
+    {
+        public string ColumnName { get; }
+        public string UniqueId { get; }
+        public PropertyInfo PropertyInfo { get; }
+        public ColumnFeatures ColumnFeatures { get; }
+        public IReadOnlyCollection<IProcessor> Processors => processors.AsReadOnly();
+        private readonly List<IProcessor> processors;
+        public Column(string columnName, PropertyInfo propertyInfo, ColumnFeatures columnFeatures)
+        {
+            ColumnName = columnName;
+            PropertyInfo = propertyInfo;
+            ColumnFeatures = columnFeatures;
+            processors = new List<IProcessor>();
+            UniqueId = Guid.NewGuid().ToString();
+        }
+        public void AddProcessor(IProcessor processor)
+        {
+            processors.Add(processor);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Column column &&
+                   ColumnName == column.ColumnName &&
+                   UniqueId == column.UniqueId &&
+                   EqualityComparer<PropertyInfo>.Default.Equals(PropertyInfo, column.PropertyInfo) &&
+                   EqualityComparer<ColumnFeatures>.Default.Equals(ColumnFeatures, column.ColumnFeatures) &&
+                   EqualityComparer<IReadOnlyCollection<IProcessor>>.Default.Equals(Processors, column.Processors) &&
+                   EqualityComparer<List<IProcessor>>.Default.Equals(processors, column.processors);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(ColumnName, UniqueId, PropertyInfo, ColumnFeatures, Processors, processors);
+        }
+        public static bool operator ==(Column a, Column b)
+        {
+            return a.Equals(b);
+        }
+        public static bool operator !=(Column a, Column b)
+        {
+            return !a.Equals(b);
+        }
+    }
+
+    public readonly struct Table
+    {
+        public Type Type { get; }
+        public string Schema { get; }
+        public string TableName { get; }
+        public string FullyEvaluatedTableName { get; }
+        public Table(Type type, string shcema, string tableName)
+        {
+            Type = type;
+            Schema = shcema;
+            TableName = tableName;
+            FullyEvaluatedTableName = $"[{Schema}].[{TableName}]";
+        }
+        public Column[] GetColumns()
+        {
+            if (TableMap.Current.TryGetColumns(Type, out IReadOnlyDictionary<string, Column> columns))
+            {
+                return columns.Values.ToArray();
+            }
+            return null;
+        }
+        public string GetFullyEvalulatedColumnName(Column column)
+        {
+            return $"{FullyEvaluatedTableName}.{column.ColumnName}";
+        }
+        public object Instance()
+        {
+            return Activator.CreateInstance(Type);
+        }
+
+    }
+    public class TableMap
+    {
+        public static TableMap Current { get; } = new TableMap();
+        private Dictionary<Type, Table> setA;
+        private Dictionary<string, Type> setB;
+        private Dictionary<string, Type> setC;
+        private Dictionary<string, Dictionary<string, Column>> setD;
+        private TableMap()
+        {
+            setA = new Dictionary<Type, Table>();
+            setB = new Dictionary<string, Type>();
+            setC = new Dictionary<string, Type>();
+            setD = new Dictionary<string, Dictionary<string, Column>>();
+        }
+        public void Add(Table table, Column[] columns)
+        {
+            setA.Add(table.Type, table);
+            setB.Add(table.Type.FullName, table.Type);
+            setC.Add(table.TableName, table.Type);
+            setD.Add(table.Type.FullName, columns.ToDictionary(x => x.ColumnName, x => x));
+        }
+        public Table GetTable<T>()
+        {
+            return setA[typeof(T)];
+        }
+        public Table GetTable(Type type)
+        {
+            return setA[type];
+        }
+        public Table GetTableByTypeName(string typeName)
+        {
+            return setA[setB[typeName]];
+        }
+        public IReadOnlyDictionary<string, Column> GetColumns(Type type)
+        {
+            return setD[type.FullName];
+        }
+        public bool TryGetTable<T>(out Table table)
+        {
+            return setA.TryGetValue(typeof(T), out table);
+        }
+        public bool TryGetTable(Type type, out Table table)
+        {
+            return setA.TryGetValue(type, out table);
+        }
+        public bool TryGetTableByTableName(string tableName, out Table table)
+        {
+            if (setB.TryGetValue(tableName, out Type type))
+            {
+                return setA.TryGetValue(type, out table);
+            }
+            table = default;
+            return false;
+        }
+        public bool TryGetColumn(string typeName, string columnName, out Column column)
+        {
+            if (setB.TryGetValue(typeName, out Type type))
+            {
+                if (setD.TryGetValue(type.FullName, out Dictionary<string, Column> columns))
+                {
+                    return columns.TryGetValue(columnName, out column);
+                }
+            }
+            column = default;
+            return false;
+        }
+        public bool TryGetColumns(Type type, out IReadOnlyDictionary<string, Column> columns)
+        {
+            if (setD.TryGetValue(type.FullName, out Dictionary<string, Column> _columns))
+            {
+                columns = _columns;
+                return true;
+            }
+            columns = null;
+            return false;
+        }
+    }
     public class DSS
     {
-        private static Dictionary<string, TableInfo> tableStructureStorage;
-        private static Dictionary<string, ColumnInfo> columnMap;
-        static DSS()
-        {
-            tableStructureStorage = new Dictionary<string, TableInfo>();
-            columnMap = new Dictionary<string, ColumnInfo>();
-        }
-        public static TableInfo Randomize(TableInfo tableInfo)
-        {
-            Dictionary<string, ColumnInfo> columns = new Dictionary<string, ColumnInfo>();
-            foreach (var i in tableInfo.Columns)
-            {
-                columns.Add(i.Key, i.Value with { Alias = "Value_" + DateTime.Now.Ticks.ToString() });
-            }
-            TableInfo _tableInfo = tableInfo with
-            {
-                Columns = columns
-            };
-            return _tableInfo;
-        }
         public static void RegisterTableStructure<T>()
         {
             RegisterTableStructure(typeof(T));
@@ -39,55 +178,22 @@ namespace Bolt.Core.Storage
         {
             TableAttribute tableAttribute = type.GetCustomAttribute<TableAttribute>();
             string fullyEvaluatedTableName = tableAttribute?.FullTableName() ?? type.Name;
-            Dictionary<string, ColumnInfo> columnInfos = new Dictionary<string, ColumnInfo>();
-            foreach (PropertyInfo property in type.GetProperties())
+            Table table = new Table(type, tableAttribute.SchemaName, tableAttribute.TableName);
+            var properties = type.GetProperties().Select(x => (Attribute: x.GetCustomAttribute<ColumnAttribute>(), Self: x)).Where(x => x.Attribute != null).ToList();
+            Column[] columns = new Column[properties.Count];
+            for (int i = 0; i < properties.Count; i++)
             {
-                ColumnAttribute columnAttribute = property.GetCustomAttribute<ColumnAttribute>();
-                if (columnAttribute != null)
+                var property = properties[i];
+                Column column = new Column(property.Attribute.ColumnName, property.Self, new ColumnFeatures { IsSurrogateKey = property.Self.GetCustomAttribute<SurrogateKeyAttribute>() != null });
+                JsonAttribute jsonAttribute = property.Self.GetCustomAttribute<JsonAttribute>();
+                if (jsonAttribute != null)
                 {
-                    JsonAttribute jsonAttribute = property.GetCustomAttribute<JsonAttribute>();
-                    string columnName = columnAttribute.ColumnName ?? property.Name;
-                    string fullyEvaluatedColumnName = fullyEvaluatedTableName + "." + columnName;
-                    string columnHash = getHash(fullyEvaluatedColumnName);
-                    List<IProcessor> processors = new List<IProcessor>();
-                    if(jsonAttribute != null) {
-                        processors.Add(new JsonProcessor(property.PropertyType));
-                    }
-                    ColumnInfo columnInfo = new ColumnInfo(columnName, Guid.NewGuid().ToString().Replace("-", ""), fullyEvaluatedColumnName, columnHash, type.Name, property, property.GetCustomAttribute<SurrogateKeyAttribute>(), processors.ToArray());
-                    columnInfos.Add(property.Name, columnInfo);
-                    columnMap.Add(columnHash, columnInfo);
+                    column.AddProcessor(new JsonProcessor(property.Self.PropertyType));
                 }
+                columns[i] = column;
             }
-            tableStructureStorage.Add(type.Name, new TableInfo(type, tableAttribute.TableName ?? type.Name, fullyEvaluatedTableName, columnInfos));
-        }
-        public static TableInfo GetTableInfo<T>()
-        {
-            return tableStructureStorage[typeof(T).Name];
-        }
-        public static TableInfo GetTableInfo(Type type)
-        {
-            return tableStructureStorage[type.Name];
-        }
-        public static Boolean TryGetTableInfo(Type type, out TableInfo tableInfo)
-        {
-            return tableStructureStorage.TryGetValue(type.Name, out tableInfo);
-        }
-        public static TableInfo GetTableInfo(string name)
-        {
-            return tableStructureStorage[name];
-        }
-        public static Boolean TryGetColumnInfo(string name, out ColumnInfo columnInfo)
-        {
-            return columnMap.TryGetValue(name, out columnInfo);
-        }
-        private static string getHash(string str)
-        {
-            int value = 0;
-            for (int iter = 0; iter < str.Length; iter++)
-            {
-                value += ((iter + 1) * (int)str[iter]);
-            }
-            return "C" + value.ToString();
+            TableMap.Current.Add(table, columns);
         }
     }
+
 }

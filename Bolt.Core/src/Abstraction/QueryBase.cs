@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
 using System.Dynamic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -16,8 +18,6 @@ namespace Bolt.Core.Abstraction
 {
     public abstract class QueryBase<T> : IQuery where T : new()
     {
-        protected Dictionary<string, TableInfo> TableInfo { get; set; }
-        protected Dictionary<string, Func<object>> TableObjects { get; set; }
         protected StringBuilder SelectClause { get; set; }
         protected StringBuilder WhereCluase { get; set; }
         protected StringBuilder JoinCluase { get; set; }
@@ -29,6 +29,7 @@ namespace Bolt.Core.Abstraction
         protected Queue<Action> GroupByClauses { get; set; }
         protected Queue<Action> OrderByClauses { get; set; }
         protected Queue<Action> HavingClauses { get; set; }
+        protected HashSet<Table> Tables { get; set; }
         protected ExpressionTypes ExpressionTypeVariant { get; set; }
         protected ExpressionTypes SelectExpressionType { get; set; }
         protected IQueryFormatter QueryFormatter;
@@ -44,11 +45,6 @@ namespace Bolt.Core.Abstraction
             GroupByClause = new StringBuilder();
             OrderByClause = new StringBuilder();
             HavingClause = new StringBuilder();
-            TableInfo = new Dictionary<string, TableInfo>();
-            TableInfo tableInfo = DSS.GetTableInfo<T>();
-            TableInfo.Add(tableInfo.TableName, tableInfo);
-            TableObjects = new Dictionary<string, Func<object>>();
-            TableObjects.Add(tableInfo.type.Name, () => Activator.CreateInstance(tableInfo.type));
             WhereClauses = new Queue<Action>();
             GroupByClauses = new Queue<Action>();
             OrderByClauses = new Queue<Action>();
@@ -130,25 +126,22 @@ namespace Bolt.Core.Abstraction
         }
         private void join<L, R>(string joinType, Expression<Func<(L CurrentTable, R TargetTable), object>> expression)
         {
-            TableInfo left = DSS.GetTableInfo<L>();
-            if (!TableInfo.ContainsKey(left.TableName))
+            if (!TableMap.Current.TryGetTable<L>(out Table left))
             {
-                throw new Exception($"{left.TableName} is not present in the query");
+                throw new Exception($"{typeof(L).FullName} is not present in the query");
             }
             StringBuilder sb = new StringBuilder();
             ExpressionReader expressionReader = new ExpressionReader(expression.Body, ExpressionTypes.FullyEvaluatedWithTypeName, new Stack<ExpressionType>(), sb, QueryFormatter);
-            TableInfo right = DSS.GetTableInfo<R>();
-            string tableName = null;
-            if (!TableInfo.ContainsKey(right.TableName))
+            if (!TableMap.Current.TryGetTable<R>(out Table right))
             {
-                TableInfo.Add(right.TableName, right);
-                TableObjects.Add(right.type.Name, () => Activator.CreateInstance(right.type));
-                tableName = right.FullyEvaluatedTableName + " AS " + QueryFormatter.Format(right.type.Name);
+                throw new Exception($"{typeof(R).FullName} is not present in the query");
+                // TableInfo.Add(right.TableName, right);
+                // TableObjects.Add(right.type.Name, () => Activator.CreateInstance(right.type));
+                // tableName = right.FullyEvaluatedTableName + " AS " + QueryFormatter.Format(right.type.Name);
             }
-            else
-            {
-                tableName = right.type.Name;
-            }
+            string tableName = right.FullyEvaluatedTableName + " AS " + QueryFormatter.Format(right.Type.Name);
+            Tables.Add(left);
+            Tables.Add(right);
             if (!string.IsNullOrEmpty(joinType))
             {
                 JoinCluase.Append("\r\n").Append(joinType);
@@ -210,25 +203,25 @@ namespace Bolt.Core.Abstraction
             int eCount = 0;
             int iCount = 0;
             StringBuilder sb = new StringBuilder();
-            foreach (var tableInfo in TableInfo)
+            foreach (var tableInfo in Tables)
             {
                 iCount = 0;
-                foreach (var columnInfo in tableInfo.Value.Columns)
+                foreach (var columnInfo in tableInfo.GetColumns())
                 {
                     if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithAlias)
                     {
-                        sb.Append(columnInfo.Value.FullyEvaluatedColumnName + " AS " + columnInfo.Value.Alias);
+                        sb.Append(tableInfo.GetFullyEvalulatedColumnName(columnInfo)+ " AS " + columnInfo.UniqueId);
                     }
                     else if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithTypeNameAndAlias)
                     {
-                        sb.Append(QueryFormatter.Format(tableInfo.Value.type.Name) + "." + columnInfo.Value.Name + " AS " + columnInfo.Value.Alias);
+                        sb.Append(QueryFormatter.Format(tableInfo.Type.FullName) + "." + columnInfo.ColumnName + " AS " + columnInfo.UniqueId);
                     }
-                    if (iCount++ < tableInfo.Value.Columns.Count - 1)
+                    if (iCount++ < tableInfo.GetColumns().Length - 1)
                     {
                         sb.Append(", \r\n");
                     }
                 }
-                if (eCount++ < TableInfo.Count - 1)
+                if (eCount++ < Tables.Count - 1)
                 {
                     sb.Append(", \r\n");
                 }
@@ -257,40 +250,41 @@ namespace Bolt.Core.Abstraction
                 command.CommandText = GetSqlQuery();
                 command.CommandTimeout = timeout;
                 await connection.OpenAsync(sqlCancellationToken);
-                DbDataReader dataReader = await command.ExecuteReaderAsync(CommandBehavior.CloseConnection, sqlCancellationToken);
+                DbDataReader dataReader = await command.ExecuteReaderAsync(CommandBehavior.KeyInfo | CommandBehavior.CloseConnection, sqlCancellationToken);
                 if (dataReader.HasRows)
                 {
+                    IReadOnlyDictionary<string, IReadOnlyCollection<SchemaInfo>> queryTableMap = getQueryTableMap(dataReader.GetSchemaTable(), dataReader.GetColumnSchema());
                     while (await dataReader.ReadAsync() && !enumeratorCancellation.IsCancellationRequested)
                     {
                         ExpandoObject expandoObject = null;
                         Dictionary<Type, object> list = new Dictionary<Type, Object>();
-                        foreach (var column in dataReader.GetColumnSchema())
+                        foreach (var table in queryTableMap)
                         {
-                            var value = dataReader.GetValue(column.ColumnName);
-                            if (DSS.TryGetColumnInfo(column.ColumnName, out ColumnInfo columnInfo))
+                            if (TableMap.Current.TryGetTableByTableName(table.Key, out Table _table))
                             {
-                                TableInfo tableInfo = DSS.GetTableInfo(columnInfo.TableKey);
-                                foreach (var i in tableInfo.Columns[columnInfo.PropertyInfo.Name].Proccessors)
+                                IReadOnlyDictionary<string, Column> columns = TableMap.Current.GetColumns(_table.Type);
+                                object instance = _table.Instance();
+                                foreach (var schemaInfo in table.Value)
                                 {
-                                    value = i.Process(value);
+                                    var value = dataReader[schemaInfo.ColumnName];
+                                    if (columns.TryGetValue(schemaInfo.ColumnName, out Column column))
+                                    {
+                                        if (column.Processors != null)
+                                        {
+                                            foreach (var processor in column.Processors)
+                                            {
+                                                value = processor.Process(value);
+                                            }
+                                        }
+                                        column.PropertyInfo.SetValue(instance, value != DBNull.Value ? value : null);
+                                    }
+                                    else
+                                    {
+                                        expandoObject ??= new ExpandoObject();
+
+                                    }
                                 }
-                                if (list.ContainsKey(tableInfo.type))
-                                {
-                                    columnInfo.PropertyInfo.SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
-                                }
-                                else
-                                {
-                                    list.Add(tableInfo.type, TableObjects[tableInfo.type.Name]());
-                                    columnInfo.PropertyInfo.SetValue(list[tableInfo.type], value != DBNull.Value ? value : null);
-                                }
-                            }
-                            else
-                            {
-                                if (expandoObject == null)
-                                {
-                                    expandoObject = new ExpandoObject();
-                                }
-                                expandoObject.TryAdd(column.ColumnName, value != DBNull.Value ? value : null);
+                                list.Add(_table.Type, instance);
                             }
                         }
                         if (expandoObject != null)
@@ -302,8 +296,39 @@ namespace Bolt.Core.Abstraction
                 }
             }
         }
-
+        private IReadOnlyDictionary<string, IReadOnlyCollection<SchemaInfo>> getQueryTableMap(DataTable dataTable, ReadOnlyCollection<DbColumn> columnSchema)
+        {
+            Dictionary<string, HashSet<SchemaInfo>> queryTableMap = new Dictionary<string, HashSet<SchemaInfo>>();
+            foreach (DataRow row in dataTable.Rows)
+            {
+                string columnName = row["ColumnName"]?.ToString();
+                string baseColumnName = row["BaseColumnName"]?.ToString();
+                string baseSchemaName = row["BaseSchemaName"]?.ToString();
+                string baseTableName = row["BaseTableName"]?.ToString();
+                string fullyEvaluatedTableName = $"[{baseSchemaName}].[{baseTableName}]";
+                if (!queryTableMap.ContainsKey(fullyEvaluatedTableName))
+                {
+                    queryTableMap.Add(fullyEvaluatedTableName, new HashSet<SchemaInfo>());
+                }
+                queryTableMap[fullyEvaluatedTableName].Add(new SchemaInfo(columnName, baseColumnName, baseSchemaName, baseTableName));
+            }
+            return queryTableMap.ToDictionary(x=> x.Key, x=> (IReadOnlyCollection<SchemaInfo>) x.Value);
+        }
         public abstract IAsyncEnumerable<Dictionary<Type, object>> Execute(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellation);
     }
+    public readonly struct SchemaInfo
+    {
+        public string ColumnName { get; }
+        public string BaseColumnName { get; }
+        public string BaseSchemaName { get; }
+        public string BaseTableName { get; }
 
+        public SchemaInfo(string columnName, string baseColumnName, string baseSchemaName, string baseTableName)
+        {
+            ColumnName = columnName;
+            BaseColumnName = baseColumnName;
+            BaseSchemaName = baseSchemaName;
+            BaseTableName = baseTableName;
+        }
+    }
 }
