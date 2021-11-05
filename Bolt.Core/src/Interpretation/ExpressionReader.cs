@@ -203,7 +203,7 @@ namespace Bolt.Core.Interpretation
                 }
                 else if (convertExpression.Operand is MemberExpression member2 && stack.Count == 0)
                 {
-                    if (TableMap.Current.TryGetTable(member2.Member.ReflectedType, out Table tableInfo))
+                    if (DSS.TryGetTableInfo(member2.Member.ReflectedType, out TableInfo tableInfo))
                     {
                         Value = queryFormatter.Format(expressionType, member2.Member.ReflectedType, member2.Member);
                         sb.Append(formatType(Value));
