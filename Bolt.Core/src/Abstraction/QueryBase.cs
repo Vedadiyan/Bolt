@@ -50,6 +50,8 @@ namespace Bolt.Core.Abstraction
             OrderByClauses = new Queue<Action>();
             HavingClauses = new Queue<Action>();
             SelectClauses = new Queue<Action>();
+            Tables = new HashSet<Table>();
+            Tables.Add(TableMap.Current.GetTable(typeof(T)));
         }
         public virtual QueryBase<T> Where<R>(Expression<Predicate<R>> expression)
         {

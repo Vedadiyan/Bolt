@@ -28,7 +28,7 @@ namespace Bolt.Core.Storage
             PropertyInfo = propertyInfo;
             ColumnFeatures = columnFeatures;
             processors = new List<IProcessor>();
-            UniqueId = Guid.NewGuid().ToString();
+            UniqueId = "C" + Guid.NewGuid().ToString().Replace("-", "");
         }
         public void AddProcessor(IProcessor processor)
         {
@@ -110,7 +110,7 @@ namespace Bolt.Core.Storage
             setA.Add(table.Type, table);
             setB.Add(table.Type.FullName, table.Type);
             setC.Add(table.TableName, table.Type);
-            setD.Add(table.Type.FullName, columns.ToDictionary(x => x.ColumnName, x => x));
+            setD.Add(table.Type.FullName, columns.ToDictionary(x => x.PropertyInfo.Name, x => x));
         }
         public Table GetTable<T>()
         {

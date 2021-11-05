@@ -1,14 +1,14 @@
 ﻿using System;
 using Bolt.Core.Abstraction;
 using Bolt.Core.Annotations;
-using Bolt.MySql;
-using Bolt.MySql.Commands;
+using Bolt.SqlServer;
+using Bolt.SqlServer.Commands;
 
 namespace Test
 {
     public class TestDbContext : DbContext
     {
-        protected override string ConnectionString => "Server=192.168.233.200;port=7005;User ID=root;Password=Pou39148!;Database=TestDb";
+        protected override string ConnectionString => "Data Source=192.168.150.41;Initial Catalog=FinancialAnalysisDb;Integrated Security=true;";
         protected override int Timeout => 3000;
     }
     class Program
@@ -16,33 +16,16 @@ namespace Test
         static void Main(string[] args)
         {
             TestDbContext testDbContext = new TestDbContext();
-            IQuery query = new Query<User>().Top(1).Select();
-            using(INonQuery nonQuery = testDbContext.GetNonQueryScope()) {
-                
-            }
-            var test = testDbContext.ExecuteQueryAsync(query).Result;
+            IQuery query = new Query<ServiceCustomer>().Top(1).Where<ServiceCustomer>(x=> x.Username == "0.5a").Select();
+            var z = testDbContext.ExecuteQueryAsync(query).Result;
             Console.WriteLine("Hello World!");
         }
     }
-    [Table("User")]
-    public class User
-    {
-        [Column("id")]
-        [SurrogateKey]
-        [PrimaryKey]
-        public ulong Id { get; set; }
-        [Column("`first_name`")]
-        public string FirstName { get; set; }
-        [Column("`last_name`")]
-        public string LastName { get; set; }
-        [Column("email")]
-        public string Email { get; set; }
-        [Column("data")]
-        [Json]
-        public TestJsonClass Data { get; set; }
-    }
-    public class TestJsonClass
-    {
-        public string PhoneNumber { get; set; }
+    [Table("Tbl01_ServiceCustomer", "DIT")]
+    public class ServiceCustomer {
+        [Column("SerC_ID")]
+        public long Id {get; set;}
+        [Column("SerC_UserName")]
+        public string Username {get; set;}
     }
 }
