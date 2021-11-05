@@ -17,28 +17,28 @@ namespace Bolt.SqlServer.Commands
 
         protected override string CreateInsertCommand(Type type)
         {
-            Table tableinfo = TableMap.Current.GetTable(type);
+            TableInfo tableinfo = DSS.GetTableInfo(type);
             StringBuilder cmd = new StringBuilder();
             StringBuilder columns = new StringBuilder();
             StringBuilder values = new StringBuilder();
-            Column surrogateKey = default;
-            foreach (var column in tableinfo.GetColumns())
+            ColumnInfo surrogateKey = null;
+            foreach (var column in tableinfo.Columns)
             {
-                if (!column.ColumnFeatures.IsSurrogateKey)
+                if (column.Value.SurrogateKey == null)
                 {
                     if (columns.Length > 0)
                     {
                         columns.Append(',');
                         values.Append(',');
                     }
-                    columns.Append(column.ColumnName);
-                    values.Append("@").Append(column.UniqueId);
+                    columns.Append(column.Value.Name);
+                    values.Append("@").Append(column.Value.UniqueId);
                 }
                 else
                 {
                     if (surrogateKey == null)
                     {
-                        surrogateKey = column;
+                        surrogateKey = column.Value;
                     }
                     else
                     {
