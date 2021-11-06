@@ -22,7 +22,7 @@ namespace Test
         static void Main(string[] args)
         {
             TestDbContext testDbContext = new TestDbContext();
-            IQuery query = new Query<ServiceCustomer>().Top(1).Where<ServiceCustomer>(x=> x.Username == "0.5a").Select();
+            IQuery query = new StoredProcedure<Test, TestP>().SetParameters(new TestP {});
             var z = testDbContext.ExecuteQueryAsync(query).Result;
             Console.WriteLine("Hello World!");
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq.Expressions;
 using System.Text;
 using Bolt.Core.Interpretation;
@@ -26,6 +27,9 @@ namespace Bolt.Core.Abstraction
         protected IQueryFormatter QueryFormatter;
         protected int _Top { get; set; } = -1;
         protected bool _Distinct { get; set; }
+
+        CommandType IQuery.CommandType => CommandType.Text;
+
         private bool clearGenericSelect = false;
         public QueryBase(IQueryFormatter queryFormatter)
         {
@@ -203,7 +207,7 @@ namespace Bolt.Core.Abstraction
                 {
                     if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithAlias)
                     {
-                        sb.Append(tableInfo.GetFullyEvalulatedColumnName(columnInfo)+ " AS " + columnInfo.UniqueId);
+                        sb.Append(tableInfo.GetFullyEvalulatedColumnName(columnInfo) + " AS " + columnInfo.UniqueId);
                     }
                     else if (SelectExpressionType == ExpressionTypes.FullyEvaluatedWithTypeNameAndAlias)
                     {

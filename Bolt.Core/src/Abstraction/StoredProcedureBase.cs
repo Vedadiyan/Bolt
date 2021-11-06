@@ -1,17 +1,19 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq.Expressions;
+using System.Data;
 using System.Text;
 using System.Threading;
 using Bolt.Core.Storage;
 
 namespace Bolt.Core.Abstraction
 {
-    public abstract class StoredProcedureBase<TArguments, TResult> : IQuery where TArguments : class, new() where TResult : class, new()
+    public abstract class StoredProcedureBase<TResult, TArguments> : IQuery where TArguments : class, new() where TResult : class, new()
     {
         protected StringBuilder parameters;
         protected StoredProcedure StoredProcedure { get; }
+
+        public CommandType CommandType => CommandType.StoredProcedure;
+
         public StoredProcedureBase()
         {
             if (!StoredProcedureMap.Current.TryGetStoredProcedure(typeof(TResult), out StoredProcedure storedProcedure))
@@ -21,7 +23,7 @@ namespace Bolt.Core.Abstraction
             StoredProcedure = storedProcedure;
             parameters = new StringBuilder();
         }
-        public StoredProcedureBase<TArguments, TResult> SetParameters(TArguments arguments)
+        public StoredProcedureBase<TResult, TArguments> SetParameters(TArguments arguments)
         {
             if (parameters.Length > 0)
             {

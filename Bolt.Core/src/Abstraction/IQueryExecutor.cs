@@ -9,7 +9,7 @@ namespace Bolt.Core.Abstraction
 {
     public interface IQueryExecutor
     {
-        IAsyncEnumerable<Dictionary<Type, object>> ExecuteAsync(DbConnection connection, string sqlCommand, int timeout, CancellationToken cancellationToken);
+        IAsyncEnumerable<Dictionary<Type, object>> ExecuteAsync(DbConnection connection, string sqlCommand, CommandType commandType, int timeout, CancellationToken cancellationToken);
         IReadOnlyDictionary<string, IReadOnlyCollection<SchemaInfo>> GetQueryTableMap(DataTable dataTable, ReadOnlyCollection<DbColumn> columnSchema);
     }
 }

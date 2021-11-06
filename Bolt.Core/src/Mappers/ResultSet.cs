@@ -30,7 +30,7 @@ namespace Bolt.Core.Mappers
         public async Task<IResultSet> LoadAsync(DbConnection connection, int timeout, CancellationToken sqlCancellationToken)
         {
             Items = new List<IResult>();
-            await foreach (var i in QueryExecutor.ExecuteAsync(connection, Query.GetSqlQuery(), timeout, sqlCancellationToken))
+            await foreach (var i in QueryExecutor.ExecuteAsync(connection, Query.GetSqlQuery(), Query.CommandType, timeout, sqlCancellationToken))
             {
                 Items.Add(new Result(i));
             }
