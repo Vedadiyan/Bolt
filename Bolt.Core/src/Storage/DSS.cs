@@ -181,11 +181,19 @@ namespace Bolt.Core.Storage
         public string SchemaName { get; }
         public string StoredProcedureFullName { get; }
         public IReadOnlyDictionary<string, PropertyInfo> Parameters { get; }
+        public StoredProcedure(string storedProcedureName, string schemaName, string storedProcedureFullName, IReadOnlyDictionary<string, PropertyInfo> parameters)
+        {
+            StoredProcedureName = storedProcedureName;
+            SchemaName = schemaName;
+            StoredProcedureFullName = storedProcedureFullName;
+            Parameters = parameters;
+        }
 
     }
     public class StoredProcedureMap
     {
         public static StoredProcedureMap Current { get; } = new StoredProcedureMap();
+        public void AddStoredProcedure(Type type, StoredProcedure storedProcedure) { }
         public bool TryGetStoredProcedure(Type type, out StoredProcedure storedProcedure)
         {
             throw new NotImplementedException();
@@ -202,6 +210,41 @@ namespace Bolt.Core.Storage
             TableAttribute tableAttribute = type.GetCustomAttribute<TableAttribute>();
             string fullyEvaluatedTableName = tableAttribute?.FullTableName() ?? type.Name;
             Table table = new Table(type, tableAttribute.SchemaName, tableAttribute.TableName);
+            var properties = type.GetProperties().Select(x => (Attribute: x.GetCustomAttribute<ColumnAttribute>(), Self: x)).Where(x => x.Attribute != null).ToList();
+            Column[] columns = new Column[properties.Count];
+            for (int i = 0; i < properties.Count; i++)
+            {
+                var property = properties[i];
+                Column column = new Column(property.Attribute.ColumnName, property.Self, new ColumnFeatures { IsSurrogateKey = property.Self.GetCustomAttribute<SurrogateKeyAttribute>() != null });
+                JsonAttribute jsonAttribute = property.Self.GetCustomAttribute<JsonAttribute>();
+                if (jsonAttribute != null)
+                {
+                    column.AddProcessor(new JsonProcessor(property.Self.PropertyType));
+                }
+                columns[i] = column;
+            }
+            TableMap.Current.Add(table, columns);
+        }
+        public static void RegisterStoredProcedure(Type type)
+        {
+            StoredProcedureAttribute storedProcedureAttribute = type.GetCustomAttribute<StoredProcedureAttribute>();
+            Dictionary<string, PropertyInfo> storedProcedureParameters = null;
+            if (storedProcedureAttribute.ParametersType != null)
+            {
+                storedProcedureParameters = new Dictionary<string, PropertyInfo>();
+                foreach (var i in storedProcedureAttribute.ParametersType.GetProperties())
+                {
+                    ParameterAttribute parameterAttribute = i.GetCustomAttribute<ParameterAttribute>();
+                    if (parameterAttribute != null)
+                    {
+                        storedProcedureParameters.Add(parameterAttribute.Name ?? i.Name, i);
+                    }
+                }
+            }
+            StoredProcedure storedProcedure = new StoredProcedure(storedProcedureAttribute.StoredProcedureName, storedProcedureAttribute.SchemaName, storedProcedureAttribute.FullStoredProcedureName(), storedProcedureParameters);
+            StoredProcedureMap.Current.AddStoredProcedure(type, storedProcedure);
+            string fullyEvaluatedTableName = storedProcedureAttribute?.FullStoredProcedureName() ?? type.Name;
+            Table table = new Table(type, storedProcedureAttribute.SchemaName, storedProcedureAttribute.StoredProcedureName);
             var properties = type.GetProperties().Select(x => (Attribute: x.GetCustomAttribute<ColumnAttribute>(), Self: x)).Where(x => x.Attribute != null).ToList();
             Column[] columns = new Column[properties.Count];
             for (int i = 0; i < properties.Count; i++)
