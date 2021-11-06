@@ -34,4 +34,10 @@ namespace Test
         [Column("SerC_UserName")]
         public string Username {get; set;}
     }
+    [StoredProcedure("Test", "DIT", typeof(TestP))]
+    public class Test {
+
+    }
+    public class TestP {}
 }
+
