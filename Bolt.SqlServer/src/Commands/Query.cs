@@ -18,10 +18,10 @@ namespace Bolt.SqlServer.Commands
         {
 
         }
-        public override IAsyncEnumerable<Dictionary<Type, object>> Execute(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellation)
-        {
-            return Execute(new SqlConnection(connectionString), timeout, sqlCancellationToken, enumeratorCancellation);
-        }
+        // public override IAsyncEnumerable<Dictionary<Type, object>> Execute(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellation)
+        // {
+        //     return Execute(new SqlConnection(connectionString), timeout, sqlCancellationToken, enumeratorCancellation);
+        // }
 
         public override string GetSqlQuery()
         {

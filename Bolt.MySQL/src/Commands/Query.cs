@@ -19,10 +19,10 @@ namespace Bolt.MySql.Commands
         {
 
         }
-        public override IAsyncEnumerable<Dictionary<Type, object>> Execute(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellation)
-        {
-            return Execute(new MySqlConnection(connectionString), timeout, sqlCancellationToken, enumeratorCancellation);
-        }
+        // public override IAsyncEnumerable<Dictionary<Type, object>> Execute(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellation)
+        // {
+        //     return Execute(new MySqlConnection(connectionString), timeout, sqlCancellationToken, enumeratorCancellation);
+        // }
 
         public override string GetSqlQuery()
         {

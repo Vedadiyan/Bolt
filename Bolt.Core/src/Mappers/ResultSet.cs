@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Dynamic;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -13,26 +14,23 @@ namespace Bolt.Core.Mappers
     {
         public IQuery Query { get; }
         public List<IResult> Items { get; private set; }
-
+        public IQueryExecutor QueryExecutor; 
         public int Count => Items.Count;
 
-        public ResultSet(IQuery query)
+        public ResultSet(IQuery query, IQueryExecutor queryExecutor)
         {
             Query = query;
+            QueryExecutor = queryExecutor;
         }
 
-        public async Task<IResultSet> LoadAsync(string connectionString)
+        public async Task<IResultSet> LoadAsync(DbConnection connection)
         {
-            return await LoadAsync(connectionString, new CancellationToken(), new CancellationToken());
+            return await LoadAsync(connection, 3000, new CancellationToken());
         }
-        public async Task<IResultSet> LoadAsync(string connectionString, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellationToken)
-        {
-            return await LoadAsync(connectionString, 30000, sqlCancellationToken, enumeratorCancellationToken);
-        }
-        public async Task<IResultSet> LoadAsync(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellationToken)
+        public async Task<IResultSet> LoadAsync(DbConnection connection, int timeout, CancellationToken sqlCancellationToken)
         {
             Items = new List<IResult>();
-            await foreach (var i in Query.Execute(connectionString, timeout, sqlCancellationToken, enumeratorCancellationToken))
+            await foreach (var i in QueryExecutor.ExecuteAsync(connection, Query.GetSqlQuery(), timeout, sqlCancellationToken))
             {
                 Items.Add(new Result(i));
             }

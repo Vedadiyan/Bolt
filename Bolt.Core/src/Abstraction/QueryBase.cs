@@ -1,16 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Data;
-using System.Data.Common;
-using System.Dynamic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading;
-using Bolt.Core.Annotations;
 using Bolt.Core.Interpretation;
 using Bolt.Core.Storage;
 
@@ -244,79 +235,6 @@ namespace Bolt.Core.Abstraction
             }
         }
         public abstract string GetSqlQuery();
-        protected async IAsyncEnumerable<Dictionary<Type, object>> Execute(DbConnection connection, int timeout, CancellationToken sqlCancellationToken, [EnumeratorCancellation] CancellationToken enumeratorCancellation)
-        {
-            using (connection)
-            {
-                DbCommand command = connection.CreateCommand();
-                command.CommandText = GetSqlQuery();
-                command.CommandTimeout = timeout;
-                await connection.OpenAsync(sqlCancellationToken);
-                DbDataReader dataReader = await command.ExecuteReaderAsync(CommandBehavior.KeyInfo | CommandBehavior.CloseConnection, sqlCancellationToken);
-                if (dataReader.HasRows)
-                {
-                    IReadOnlyDictionary<string, IReadOnlyCollection<SchemaInfo>> queryTableMap = getQueryTableMap(dataReader.GetSchemaTable(), dataReader.GetColumnSchema());
-                    while (await dataReader.ReadAsync() && !enumeratorCancellation.IsCancellationRequested)
-                    {
-                        ExpandoObject expandoObject = null;
-                        Dictionary<Type, object> list = new Dictionary<Type, Object>();
-                        foreach (var table in queryTableMap)
-                        {
-                            if (TableMap.Current.TryGetTableByTableName(table.Key, out Table _table))
-                            {
-                                IReadOnlyDictionary<string, Column> columns = TableMap.Current.GetColumnsByUniqueId(_table.Type);
-                                object instance = _table.Instance();
-                                foreach (var schemaInfo in table.Value)
-                                {
-                                    var value = dataReader[schemaInfo.ColumnName];
-                                    if (columns.TryGetValue(schemaInfo.ColumnName, out Column column))
-                                    {
-                                        if (column.Processors != null)
-                                        {
-                                            foreach (var processor in column.Processors)
-                                            {
-                                                value = processor.Process(value);
-                                            }
-                                        }
-                                        column.PropertyInfo.SetValue(instance, value != DBNull.Value ? value : null);
-                                    }
-                                    else
-                                    {
-                                        expandoObject ??= new ExpandoObject();
-
-                                    }
-                                }
-                                list.Add(_table.Type, instance);
-                            }
-                        }
-                        if (expandoObject != null)
-                        {
-                            list.Add(expandoObject.GetType(), expandoObject);
-                        }
-                        yield return list;
-                    }
-                }
-            }
-        }
-        private IReadOnlyDictionary<string, IReadOnlyCollection<SchemaInfo>> getQueryTableMap(DataTable dataTable, ReadOnlyCollection<DbColumn> columnSchema)
-        {
-            Dictionary<string, HashSet<SchemaInfo>> queryTableMap = new Dictionary<string, HashSet<SchemaInfo>>();
-            foreach (DataRow row in dataTable.Rows)
-            {
-                string columnName = row["ColumnName"]?.ToString();
-                string baseColumnName = row["BaseColumnName"]?.ToString();
-                string baseSchemaName = row["BaseSchemaName"]?.ToString();
-                string baseTableName = row["BaseTableName"]?.ToString();
-                string fullyEvaluatedTableName = $"[{baseSchemaName}].[{baseTableName}]";
-                if (!queryTableMap.ContainsKey(fullyEvaluatedTableName))
-                {
-                    queryTableMap.Add(fullyEvaluatedTableName, new HashSet<SchemaInfo>());
-                }
-                queryTableMap[fullyEvaluatedTableName].Add(new SchemaInfo(columnName, baseColumnName, baseSchemaName, baseTableName));
-            }
-            return queryTableMap.ToDictionary(x=> x.Key, x=> (IReadOnlyCollection<SchemaInfo>) x.Value);
-        }
-        public abstract IAsyncEnumerable<Dictionary<Type, object>> Execute(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellation);
     }
     public readonly struct SchemaInfo
     {

@@ -9,8 +9,8 @@ namespace Bolt.SqlServer.Commands
 {
     public class NonQuery : NonQueryBase
     {
-        private readonly string connectionString;
-        public NonQuery(string connectionString, int poolSize = 10) : base(QueryFormatter.Current, poolSize)
+        private readonly Func<DbConnection> connectionString;
+        public NonQuery(Func<DbConnection>  connectionString, int poolSize = 10) : base(QueryFormatter.Current, poolSize)
         {
             this.connectionString = connectionString;
         }
@@ -52,7 +52,7 @@ namespace Bolt.SqlServer.Commands
 
         protected override DbConnection GetDbConnection()
         {
-            return new SqlConnection(connectionString);
+            return connectionString();
         }
     }
 

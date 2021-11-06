@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.Common;
 using Bolt.Core.Abstraction;
 using Bolt.Core.Annotations;
 using Bolt.SqlServer;
@@ -8,8 +9,13 @@ namespace Test
 {
     public class TestDbContext : DbContext
     {
-        protected override string ConnectionString => "Data Source=192.168.150.41;Initial Catalog=FinancialAnalysisDb;Integrated Security=true;";
+        protected string Connection => "Data Source=192.168.150.41;Initial Catalog=FinancialAnalysisDb;Integrated Security=true;";
         protected override int Timeout => 3000;
+
+        protected override DbConnection GetConnection()
+        {
+            throw new NotImplementedException();
+        }
     }
     class Program
     {

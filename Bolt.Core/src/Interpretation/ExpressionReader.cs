@@ -403,7 +403,7 @@ namespace Bolt.Core.Interpretation
                         {
                             sb.Append(convertNodeType(stack.Pop()));
                         }
-                        return $"'{input.ToString()}'";
+                        return $"'{input.ToString().Replace("'", "''")}'";
                     }
             }
         }

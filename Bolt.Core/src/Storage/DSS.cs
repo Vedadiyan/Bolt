@@ -175,6 +175,22 @@ namespace Bolt.Core.Storage
             return false;
         }
     }
+    public readonly struct StoredProcedure
+    {
+        public string StoredProcedureName { get; }
+        public string SchemaName { get; }
+        public string StoredProcedureFullName { get; }
+        public IReadOnlyDictionary<string, PropertyInfo> Parameters { get; }
+
+    }
+    public class StoredProcedureMap
+    {
+        public static StoredProcedureMap Current { get; } = new StoredProcedureMap();
+        public bool TryGetStoredProcedure(Type type, out StoredProcedure storedProcedure)
+        {
+            throw new NotImplementedException();
+        }
+    }
     public class DSS
     {
         public static void RegisterTableStructure<T>()

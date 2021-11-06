@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +14,8 @@ namespace Bolt.Core
     public abstract class DbContextBase
     {
         private static bool isInitialized = false;
-        public DbContextBase()
+        private IQueryExecutor queryExecutor;
+        public DbContextBase(IQueryExecutor queryExecutor)
         {
             if (!isInitialized)
             {
@@ -27,8 +29,9 @@ namespace Bolt.Core
                 }
                 isInitialized = true;
             }
+            this.queryExecutor = queryExecutor;
         }
-        protected abstract string ConnectionString { get; }
+        protected abstract DbConnection GetConnection();
         protected abstract int Timeout { get; }
         private void loadAssembly(Assembly assembly)
         {
@@ -48,8 +51,8 @@ namespace Bolt.Core
         }
         public async Task<List<IResult>> ExecuteQueryAsync(IQuery query, CancellationToken cancellationToken)
         {
-            IResultSet resultSet = new ResultSet(query);
-            await resultSet.LoadAsync(ConnectionString, Timeout, cancellationToken, cancellationToken);
+            IResultSet resultSet = new ResultSet(query, queryExecutor);
+            await resultSet.LoadAsync(GetConnection(), Timeout, cancellationToken);
             return resultSet.Items;
         }
         public abstract INonQuery GetNonQueryScope(int poolSize = 10);

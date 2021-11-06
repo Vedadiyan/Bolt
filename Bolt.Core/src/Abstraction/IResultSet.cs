@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,6 +10,6 @@ namespace Bolt.Core.Abstraction
         IQuery Query { get; }
         List<IResult> Items { get; }
         int Count { get; }
-        Task<IResultSet> LoadAsync(string connectionString, int timeout, CancellationToken sqlCancellationToken, CancellationToken enumeratorCancellationToken);
+        Task<IResultSet> LoadAsync(DbConnection connection, int timeout, CancellationToken sqlCancellationToken);
     }
 }

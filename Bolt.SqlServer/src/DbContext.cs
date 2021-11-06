@@ -6,9 +6,13 @@ namespace Bolt.SqlServer
 {
     public abstract class DbContext : DbContextBase
     {
+        protected DbContext() : base(new DefaultQueryExecutor())
+        {
+        }
+
         public override INonQuery GetNonQueryScope(int poolSize = 10)
         {
-            return new NonQuery(ConnectionString, poolSize);
+            return new NonQuery(GetConnection, poolSize);
         }
     }
 }
