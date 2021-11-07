@@ -38,11 +38,17 @@ namespace Bolt.Core
             Type[] types = assembly.GetExportedTypes();
             foreach (var type in types)
             {
-                TableAttribute tableAttribute = type.GetCustomAttribute<TableAttribute>();
-                if (tableAttribute != null)
+                foreach (var attr in type.GetCustomAttributes())
                 {
-                    DSS.RegisterTableStructure(type);
+                    if (attr is TableAttribute)
+                    {
+                        DSS.RegisterTableStructure(type);
+                    }
+                    else if (attr is StoredProcedureAttribute) {
+                        DSS.RegisterStoredProcedure(type);
+                    }
                 }
+
             }
         }
         public Task<List<IResult>> ExecuteQueryAsync(IQuery query)
