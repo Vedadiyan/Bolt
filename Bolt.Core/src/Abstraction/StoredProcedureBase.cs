@@ -12,8 +12,6 @@ namespace Bolt.Core.Abstraction
         protected StringBuilder parameters;
         protected StoredProcedure StoredProcedure { get; }
 
-        public CommandType CommandType => CommandType.StoredProcedure;
-
         public StoredProcedureBase()
         {
             if (!StoredProcedureMap.Current.TryGetStoredProcedure(typeof(TResult), out StoredProcedure storedProcedure))
