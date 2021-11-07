@@ -23,25 +23,29 @@ namespace Test
         static void Main(string[] args)
         {
             TestDbContext testDbContext = new TestDbContext();
-            IQuery query = new StoredProcedure<Test, Bolt.Core.Void>();
+            IQuery query = new StoredProcedure<Test, TestP>().SetParameters(new TestP { IsAudited = false });
             var z = testDbContext.ExecuteQueryAsync(query).Result;
             Console.WriteLine("Hello World!");
         }
     }
     [Table("Tbl01_ServiceCustomer", "DIT")]
-    public class ServiceCustomer {
+    public class ServiceCustomer
+    {
         [Column("SerC_ID")]
-        public long Id {get; set;}
+        public long Id { get; set; }
         [Column("SerC_UserName")]
-        public string Username {get; set;}
+        public string Username { get; set; }
     }
-    [StoredProcedure("Sp500_GetMarketData", "DIT")]
-    public class Test {
-        [Column("ID")]
-        public long Id {get;set;}
-        [Column]
-        public string DisplayName {get; set;}
+    [StoredProcedure("SP02_IncomeStatement_NewData2", "DIT", typeof(TestP))]
+    public class Test
+    {
+        [Column("Com_ID")]
+        public long Id { get; set; }
     }
-    public class TestP {}
+    public class TestP
+    {
+        [Parameter]
+        public bool IsAudited { get; set; }
+    }
 }
 
