@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data.Common;
+using System.Data.SqlClient;
 using Bolt.Core.Abstraction;
 using Bolt.Core.Annotations;
 using Bolt.SqlServer;
@@ -14,7 +15,7 @@ namespace Test
 
         protected override DbConnection GetConnection()
         {
-            throw new NotImplementedException();
+            return new SqlConnection(Connection);
         }
     }
     class Program
