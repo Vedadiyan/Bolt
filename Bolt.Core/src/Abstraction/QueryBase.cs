@@ -28,8 +28,6 @@ namespace Bolt.Core.Abstraction
         protected int _Top { get; set; } = -1;
         protected bool _Distinct { get; set; }
 
-        CommandType IQuery.CommandType => CommandType.Text;
-
         private bool clearGenericSelect = false;
         public QueryBase(IQueryFormatter queryFormatter)
         {

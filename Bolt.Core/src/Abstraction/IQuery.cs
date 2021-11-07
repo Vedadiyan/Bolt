@@ -8,7 +8,6 @@ namespace Bolt.Core.Abstraction
 {
     public interface IQuery
     {
-        CommandType CommandType { get; }
         string GetSqlQuery();
     }
 }

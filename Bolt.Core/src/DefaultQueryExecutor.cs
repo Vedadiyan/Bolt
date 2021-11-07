@@ -14,14 +14,13 @@ namespace Bolt.Core
 {
     public class DefaultQueryExecutor : IQueryExecutor
     {
-        public async IAsyncEnumerable<Dictionary<Type, object>> ExecuteAsync(DbConnection connection, string sqlCommand, CommandType commandType, int timeout, [EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<Dictionary<Type, object>> ExecuteAsync(DbConnection connection, string sqlCommand, int timeout, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             using (connection)
             {
                 DbCommand command = connection.CreateCommand();
                 command.CommandText = sqlCommand;
                 command.CommandTimeout = timeout;
-                command.CommandType = commandType;
                 await connection.OpenAsync(cancellationToken);
                 DbDataReader dataReader = await command.ExecuteReaderAsync(CommandBehavior.KeyInfo | CommandBehavior.CloseConnection, cancellationToken);
                 if (dataReader.HasRows)
