@@ -12,7 +12,7 @@ namespace Bolt.Core.Abstraction
         protected StringBuilder parameters;
         protected StoredProcedure StoredProcedure { get; }
 
-        public CommandType CommandType => CommandType.StoredProcedure;
+        public CommandType CommandType => CommandType.Text;
 
         public StoredProcedureBase()
         {
