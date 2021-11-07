@@ -22,7 +22,7 @@ namespace Test
         static void Main(string[] args)
         {
             TestDbContext testDbContext = new TestDbContext();
-            IQuery query = new StoredProcedure<Test, TestP>().SetParameters(new TestP {});
+            IQuery query = new StoredProcedure<Test, Bolt.Core.Void>();
             var z = testDbContext.ExecuteQueryAsync(query).Result;
             Console.WriteLine("Hello World!");
         }
@@ -34,9 +34,12 @@ namespace Test
         [Column("SerC_UserName")]
         public string Username {get; set;}
     }
-    [StoredProcedure("Test", "DIT", typeof(TestP))]
+    [StoredProcedure("Sp500_GetMarketData", "DIT")]
     public class Test {
-
+        [Column("ID")]
+        public long Id {get;set;}
+        [Column]
+        public string DisplayName {get; set;}
     }
     public class TestP {}
 }

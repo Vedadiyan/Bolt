@@ -193,10 +193,16 @@ namespace Bolt.Core.Storage
     public class StoredProcedureMap
     {
         public static StoredProcedureMap Current { get; } = new StoredProcedureMap();
-        public void AddStoredProcedure(Type type, StoredProcedure storedProcedure) { }
+        private Dictionary<Type, StoredProcedure> storedProcedures;
+        private StoredProcedureMap() {
+            storedProcedures = new Dictionary<Type, StoredProcedure>();
+        }
+        public void AddStoredProcedure(Type type, StoredProcedure storedProcedure) {
+            storedProcedures.Add(type, storedProcedure);
+         }
         public bool TryGetStoredProcedure(Type type, out StoredProcedure storedProcedure)
         {
-            throw new NotImplementedException();
+            return storedProcedures.TryGetValue(type, out storedProcedure);
         }
     }
     public class DSS
