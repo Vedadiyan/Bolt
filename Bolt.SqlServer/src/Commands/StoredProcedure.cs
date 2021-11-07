@@ -13,12 +13,16 @@ namespace Bolt.SqlServer.Commands
             {
                 parameters.Append(",");
             }
+            else {
+                parameters.Append(" ");
+            }
             parameters.Append("@").Append(name).Append("=").Append(ExpressionReader.FormatType(value));
         }
 
         public override string GetSqlQuery()
         {
-            return $"EXEC {StoredProcedure.StoredProcedureFullName} {parameters.ToString()}";
+            parameters.Insert(0, $"EXEC {StoredProcedure.StoredProcedureFullName}");
+            return parameters.ToString();
         }
     }
 }
